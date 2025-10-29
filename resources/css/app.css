@@ -1,0 +1,17 @@
+/* Application Styles */
+
+/* Import Enhanced Design System - Depth & Hierarchy UI */
+@import './design-system.css';
+
+/* Global Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Add your custom CSS here if needed */

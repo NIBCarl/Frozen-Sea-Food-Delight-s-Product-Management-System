@@ -1,0 +1,536 @@
+/**
+ * Seafood Inventory Management - Enhanced Design System
+ * Following principles: Color Layering + Strategic Shadows + Depth & Hierarchy
+ */
+
+/* =================================================================
+   COLOR SYSTEM - Layered Shades for Depth
+   ================================================================= */
+
+:root {
+  /* Primary Blue Shades - Ocean/Seafood Theme */
+  --color-primary-900: #0a3d62;  /* Darkest - Deep background */
+  --color-primary-800: #0c4c7a;  /* Dark - Secondary bg */
+  --color-primary-700: #1565c0;  /* Medium Dark */
+  --color-primary-600: #1976d2;  /* Base Primary */
+  --color-primary-500: #2196f3;  /* Medium Light */
+  --color-primary-400: #42a5f5;  /* Light - Elevated elements */
+  --color-primary-300: #64b5f6;  /* Lighter - Hover states */
+  --color-primary-200: #90caf9;  /* Lightest - Selected states */
+  
+  /* Neutral Shades - For Layering */
+  --color-neutral-950: #0d1117;  /* Deepest background */
+  --color-neutral-900: #1a1f2e;  /* Deep background */
+  --color-neutral-800: #22283a;  /* Dark cards */
+  --color-neutral-700: #2d3748;  /* Medium cards */
+  --color-neutral-600: #3d4759;  /* Base cards */
+  --color-neutral-500: #4a5568;  /* Light cards */
+  --color-neutral-400: #718096;  /* Elevated cards */
+  --color-neutral-300: #a0aec0;  /* Lighter elements */
+  --color-neutral-200: #e2e8f0;  /* Very light */
+  --color-neutral-100: #f7fafc;  /* Lightest */
+  
+  /* Success Shades - Green */
+  --color-success-900: #064e3b;
+  --color-success-600: #059669;
+  --color-success-400: #34d399;
+  --color-success-200: #a7f3d0;
+  
+  /* Warning Shades - Amber */
+  --color-warning-900: #78350f;
+  --color-warning-600: #d97706;
+  --color-warning-400: #fbbf24;
+  --color-warning-200: #fde68a;
+  
+  /* Error Shades - Red */
+  --color-error-900: #7f1d1d;
+  --color-error-600: #dc2626;
+  --color-error-400: #f87171;
+  --color-error-200: #fecaca;
+  
+  /* Seafood Accent - Teal/Cyan */
+  --color-accent-600: #0891b2;
+  --color-accent-500: #06b6d4;
+  --color-accent-400: #22d3ee;
+  --color-accent-300: #67e8f9;
+  
+  /* =================================================================
+     SHADOW SYSTEM - Dual Shadows with Light from Above
+     ================================================================= */
+  
+  /* Small Shadows - Subtle depth for most elements */
+  --shadow-sm-top: 0 -1px 2px 0 rgba(255, 255, 255, 0.05);
+  --shadow-sm-bottom: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  --shadow-sm: var(--shadow-sm-top), var(--shadow-sm-bottom);
+  
+  /* Medium Shadows - Standard elevation */
+  --shadow-md-top: 0 -2px 4px 0 rgba(255, 255, 255, 0.06);
+  --shadow-md-bottom: 0 4px 8px 0 rgba(0, 0, 0, 0.15);
+  --shadow-md: var(--shadow-md-top), var(--shadow-md-bottom);
+  
+  /* Large Shadows - Prominent elements & hover states */
+  --shadow-lg-top: 0 -3px 6px 0 rgba(255, 255, 255, 0.08);
+  --shadow-lg-bottom: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+  --shadow-lg: var(--shadow-lg-top), var(--shadow-lg-bottom);
+  
+  /* Extra Large Shadows - Modal/Dialog emphasis */
+  --shadow-xl-top: 0 -4px 8px 0 rgba(255, 255, 255, 0.1);
+  --shadow-xl-bottom: 0 12px 24px 0 rgba(0, 0, 0, 0.25);
+  --shadow-xl: var(--shadow-xl-top), var(--shadow-xl-bottom);
+  
+  /* Inset Shadows - Sunken effect */
+  --shadow-inset-top: inset 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  --shadow-inset-bottom: inset 0 -1px 2px 0 rgba(255, 255, 255, 0.05);
+  --shadow-inset: var(--shadow-inset-top), var(--shadow-inset-bottom);
+  
+  /* =================================================================
+     SPACING & SIZING
+     ================================================================= */
+  
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
+  
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  
+  /* =================================================================
+     TRANSITIONS
+     ================================================================= */
+  
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =================================================================
+   UTILITY CLASSES - Layer System
+   ================================================================= */
+
+/* Background Layers (darker = deeper) */
+.bg-layer-deepest { background-color: var(--color-neutral-950); }
+.bg-layer-deep { background-color: var(--color-neutral-900); }
+.bg-layer-base { background-color: var(--color-neutral-800); }
+.bg-layer-elevated { background-color: var(--color-neutral-700); }
+.bg-layer-high { background-color: var(--color-neutral-600); }
+.bg-layer-highest { background-color: var(--color-neutral-500); }
+
+/* Primary Color Layers */
+.bg-primary-deep { background-color: var(--color-primary-900); }
+.bg-primary-base { background-color: var(--color-primary-600); }
+.bg-primary-elevated { background-color: var(--color-primary-500); }
+.bg-primary-high { background-color: var(--color-primary-400); }
+
+/* Shadow Utilities */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+.shadow-inset { box-shadow: var(--shadow-inset); }
+
+/* Hover Elevations */
+.hover-elevate {
+  transition: all var(--transition-base);
+}
+
+.hover-elevate:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.hover-elevate-sm:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* =================================================================
+   CARD COMPONENTS - Layered with Depth
+   ================================================================= */
+
+.card-base {
+  background: var(--color-neutral-700);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-lg);
+  transition: all var(--transition-base);
+}
+
+.card-elevated {
+  background: var(--color-neutral-600);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-lg);
+  transition: all var(--transition-base);
+}
+
+.card-prominent {
+  background: linear-gradient(135deg, var(--color-neutral-500) 0%, var(--color-neutral-600) 100%);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  padding: var(--spacing-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-prominent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+}
+
+/* Inset Cards (sunken effect) */
+.card-inset {
+  background: var(--color-neutral-800);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-inset);
+  padding: var(--spacing-md);
+}
+
+/* =================================================================
+   BUTTON COMPONENTS - Elevated with Gradients
+   ================================================================= */
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--color-primary-500) 0%, var(--color-primary-600) 100%);
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:hover::before {
+  opacity: 1;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary {
+  background: var(--color-neutral-600);
+  color: var(--color-neutral-100);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-neutral-500);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-secondary:hover {
+  background: var(--color-neutral-500);
+  box-shadow: var(--shadow-md);
+}
+
+/* =================================================================
+   INPUT COMPONENTS - Inset with Light Glow
+   ================================================================= */
+
+.input-elevated {
+  background: var(--color-neutral-700);
+  border: 1px solid var(--color-neutral-600);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-shadow: var(--shadow-inset);
+  color: var(--color-neutral-100);
+  transition: all var(--transition-base);
+}
+
+.input-elevated:focus {
+  background: var(--color-neutral-600);
+  border-color: var(--color-primary-500);
+  box-shadow: 
+    var(--shadow-inset),
+    0 0 0 3px rgba(33, 150, 243, 0.1);
+  outline: none;
+}
+
+/* =================================================================
+   NAVIGATION - Layered Bar
+   ================================================================= */
+
+.nav-elevated {
+  background: linear-gradient(180deg, var(--color-neutral-700) 0%, var(--color-neutral-800) 100%);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+
+.nav-elevated::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-neutral-600), transparent);
+}
+
+/* =================================================================
+   STAT CARDS - Dashboard Elements
+   ================================================================= */
+
+.stat-card {
+  background: linear-gradient(135deg, var(--color-neutral-600) 0%, var(--color-neutral-700) 100%);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary-500), var(--color-accent-400));
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+.stat-card-success::before {
+  background: linear-gradient(90deg, var(--color-success-600), var(--color-success-400));
+}
+
+.stat-card-warning::before {
+  background: linear-gradient(90deg, var(--color-warning-600), var(--color-warning-400));
+}
+
+.stat-card-error::before {
+  background: linear-gradient(90deg, var(--color-error-600), var(--color-error-400));
+}
+
+/* =================================================================
+   PRODUCT CARDS - Elevated on Hover
+   ================================================================= */
+
+.product-card-enhanced {
+  background: var(--color-neutral-700);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.product-card-enhanced:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+}
+
+.product-card-enhanced .product-image-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-card-enhanced .product-image-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.product-card-enhanced:hover .product-image-wrapper::after {
+  opacity: 1;
+}
+
+/* =================================================================
+   TABLE COMPONENTS - Inset with Alternating Rows
+   ================================================================= */
+
+.table-elevated {
+  background: var(--color-neutral-800);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-inset);
+  overflow: hidden;
+}
+
+.table-elevated thead {
+  background: var(--color-neutral-700);
+}
+
+.table-elevated tbody tr {
+  background: var(--color-neutral-800);
+  transition: background var(--transition-fast);
+}
+
+.table-elevated tbody tr:nth-child(even) {
+  background: var(--color-neutral-750);
+}
+
+.table-elevated tbody tr:hover {
+  background: var(--color-neutral-700);
+}
+
+/* =================================================================
+   BADGE COMPONENTS - Small Elevated Pills
+   ================================================================= */
+
+.badge-elevated {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.badge-primary {
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
+  color: white;
+}
+
+.badge-success {
+  background: linear-gradient(135deg, var(--color-success-600), var(--color-success-400));
+  color: white;
+}
+
+.badge-warning {
+  background: linear-gradient(135deg, var(--color-warning-600), var(--color-warning-400));
+  color: var(--color-neutral-900);
+}
+
+.badge-error {
+  background: linear-gradient(135deg, var(--color-error-600), var(--color-error-400));
+  color: white;
+}
+
+/* =================================================================
+   RESPONSIVE UTILITIES
+   ================================================================= */
+
+@media (max-width: 768px) {
+  :root {
+    --spacing-lg: 1rem;
+    --spacing-xl: 1.5rem;
+    --spacing-2xl: 2rem;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+  }
+  
+  .product-card-enhanced:hover {
+    transform: translateY(-4px);
+  }
+}
+
+/* =================================================================
+   LIGHT MODE ADJUSTMENTS
+   ================================================================= */
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-neutral-950: #ffffff;
+    --color-neutral-900: #f8fafc;
+    --color-neutral-800: #f1f5f9;
+    --color-neutral-700: #e2e8f0;
+    --color-neutral-600: #cbd5e1;
+    --color-neutral-500: #94a3b8;
+    
+    --shadow-sm-top: 0 -1px 2px 0 rgba(0, 0, 0, 0.02);
+    --shadow-sm-bottom: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+    
+    --shadow-md-top: 0 -2px 4px 0 rgba(0, 0, 0, 0.03);
+    --shadow-md-bottom: 0 2px 6px 0 rgba(0, 0, 0, 0.12);
+    
+    --shadow-lg-top: 0 -3px 6px 0 rgba(0, 0, 0, 0.04);
+    --shadow-lg-bottom: 0 4px 12px 0 rgba(0, 0, 0, 0.16);
+    
+    --shadow-xl-top: 0 -4px 8px 0 rgba(0, 0, 0, 0.05);
+    --shadow-xl-bottom: 0 8px 20px 0 rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* =================================================================
+   GLASS MORPHISM EFFECT (Optional Premium Touch)
+   ================================================================= */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+}
+
+/* =================================================================
+   PROGRESS BARS - Inset with Elevated Fill
+   ================================================================= */
+
+.progress-container {
+  background: var(--color-neutral-800);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-inset);
+  padding: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  background: linear-gradient(90deg, var(--color-primary-500), var(--color-accent-400));
+  height: 8px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  transition: width var(--transition-slow);
+  position: relative;
+}
+
+.progress-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
