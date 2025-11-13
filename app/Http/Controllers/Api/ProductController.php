@@ -12,11 +12,29 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with(['category', 'primaryImage', 'creator'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        $query = Product::with(['category', 'primaryImage', 'creator'])
+            ->orderBy('created_at', 'desc');
+
+        // Suppliers can only see their own products
+        if ($request->user() && $request->user()->isSupplier()) {
+            $query->where('created_by', $request->user()->id);
+        }
+
+        // For public endpoints (no include_inactive flag) keep only active & available products
+        if (!$request->boolean('include_inactive')) {
+            $query->where('is_available', true)
+                  ->where('status', 'active');
+        } else {
+            // Optional explicit status filter for admins
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+        }
+
+        $perPage = $request->input('per_page', 15);
+        $products = $query->paginate($perPage);
 
         return response()->json($products);
     }
@@ -178,11 +196,19 @@ class ProductController extends Controller
 
     public function uploadImages(Request $request, Product $product)
     {
-        $validator = Validator::make($request->all(), [
+        // Allow both a single file field named "image" and an array field named "images[]"
+        $single = $request->hasFile('image');
+
+        $rules = $single ? [
+            'image' => 'required|image|max:2048',
+            'alt_text' => 'nullable|string|max:255',
+        ] : [
             'images' => 'required|array',
             'images.*' => 'image|max:2048',
             'alt_text' => 'nullable|string|max:255',
-        ]);
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
@@ -191,9 +217,11 @@ class ProductController extends Controller
             ], 422);
         }
 
+        $files = $single ? [$request->file('image')] : $request->file('images');
         $images = [];
-        foreach ($request->file('images') as $image) {
-            $path = $image->store('products', 'public');
+
+        foreach ($files as $file) {
+            $path = $file->store('products', 'public');
             $productImage = $product->images()->create([
                 'image_path' => $path,
                 'alt_text' => $request->alt_text,

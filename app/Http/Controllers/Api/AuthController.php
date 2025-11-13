@@ -45,12 +45,19 @@ class AuthController extends Controller
 
         $token = $user->createToken('API Token')->plainTextToken;
 
-        // Load roles and permissions for the user
-        $user->load('roles', 'permissions');
+        // Load only essential user data for faster response
+        $user->load('roles:id,name');
 
         return response()->json([
             'message' => 'Login successful',
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'username' => $user->username,
+                'roles' => $user->roles->pluck('name'),
+                'status' => $user->status,
+            ],
             'token' => $token
         ]);
     }
@@ -79,8 +86,8 @@ class AuthController extends Controller
             'status' => UserStatus::ACTIVE->value,
         ]);
 
-        // Assign default user role
-        $user->assignRole('user');
+        // Assign default customer role for regular registrations
+        $user->assignRole('customer');
         
         $token = $user->createToken('API Token')->plainTextToken;
 

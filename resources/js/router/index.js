@@ -22,10 +22,8 @@ const routes = [
   {
     path: '/dashboard',
     name: 'Dashboard',
-    redirect: (to) => {
-      // This will be handled by the navigation guard to redirect to role-specific dashboard
-      return '/admin/dashboard';
-    },
+    // Do not hard-redirect here to avoid loops; guard below will route by role
+    component: () => import('../views/Dashboard.vue'),
     meta: { requiresAuth: true },
   },
   {
@@ -82,6 +80,11 @@ const routes = [
         component: () => import('../views/customer/ProductCatalog.vue'),
       },
       {
+        path: 'products/:id',
+        name: 'customer.product-detail',
+        component: () => import('../views/customer/ProductDetail.vue'),
+      },
+      {
         path: 'cart',
         name: 'customer.cart',
         component: () => import('../views/customer/Cart.vue'),
@@ -95,6 +98,12 @@ const routes = [
         path: 'orders',
         name: 'customer.orders',
         component: () => import('../views/customer/Orders.vue'),
+      },
+      {
+        path: 'orders/:id',
+        name: 'customer.order-detail',
+        component: () => import('../views/customer/OrderDetail.vue'),
+        props: true,
       },
     ],
   },
@@ -121,6 +130,11 @@ const routes = [
         path: 'today',
         name: 'delivery.today',
         component: () => import('../views/delivery/TodayDeliveries.vue'),
+      },
+      {
+        path: 'history',
+        name: 'delivery.history',
+        component: () => import('../views/delivery/DeliveryHistory.vue'),
       },
     ],
   },
@@ -165,7 +179,8 @@ router.beforeEach(async (to, from, next) => {
 
   // Check admin access
   if (to.meta.requiresAdmin && !authStore.hasRole('admin')) {
-    next('/dashboard');
+    // Send non-admins to customer home instead of /dashboard (which may not exist)
+    next('/customer/products');
     return;
   }
 
@@ -173,17 +188,19 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresRole) {
     const requiredRole = to.meta.requiresRole;
     if (!authStore.hasRole(requiredRole)) {
-      // Redirect to appropriate dashboard based on user's role
-      if (authStore.hasRole('admin')) {
-        next('/admin/dashboard');
-      } else if (authStore.hasRole('customer')) {
-        next('/customer/products');
-      } else if (authStore.hasRole('supplier')) {
-        next('/supplier/shipments');
-      } else if (authStore.hasRole('delivery_personnel')) {
-        next('/delivery/today');
+      // Compute a safe fallback based on actual roles
+      let fallback = '/settings';
+      if (authStore.hasRole('admin')) fallback = '/admin/dashboard';
+      else if (authStore.hasRole('customer')) fallback = '/customer/products';
+      else if (authStore.hasRole('supplier')) fallback = '/supplier/shipments';
+      else if (authStore.hasRole('delivery_personnel')) fallback = '/delivery/today';
+
+      // Avoid redirect loops: only redirect if we are not already on the fallback route
+      if (to.fullPath !== fallback) {
+        next(fallback);
       } else {
-        next('/dashboard');
+        // Already at fallback, allow navigation to break the loop
+        next();
       }
       return;
     }
@@ -201,7 +218,7 @@ router.beforeEach(async (to, from, next) => {
     } else if (authStore.hasRole('delivery_personnel')) {
       next('/delivery/today');
     } else {
-      next('/dashboard');
+      next('/customer/products'); // Default fallback to customer products
     }
     return;
   }
@@ -218,12 +235,23 @@ router.beforeEach(async (to, from, next) => {
     } else if (authStore.hasRole('delivery_personnel')) {
       next('/delivery/today');
     } else {
-      next('/admin/dashboard'); // Default to admin dashboard
+      next('/customer/products'); // Default to customer products for unrecognized roles
     }
     return;
   }
 
   next();
+});
+
+// Recover from dynamic import chunk load failures (e.g., after deploy)
+router.onError((error, to) => {
+  const message = error?.message || '';
+  const name = error?.name || '';
+  if (/Loading chunk/i.test(message) || /ChunkLoadError/i.test(name)) {
+    // Force reload to fetch fresh chunks and navigate to the intended route
+    console.warn('Chunk load failed, reloading page to recover...', error);
+    window.location.assign(to?.fullPath || window.location.pathname);
+  }
 });
 
 export default router;

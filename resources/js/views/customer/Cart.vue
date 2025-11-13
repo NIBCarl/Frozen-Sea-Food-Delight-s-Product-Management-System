@@ -287,9 +287,22 @@ const proceedToCheckout = () => {
   router.push({ name: 'customer.checkout' })
 }
 
-onMounted(async () => {
-  await cartStore.fetchCart()
-})
+const loadCart = async () => {
+  try {
+    console.log('Loading cart...')
+    await cartStore.fetchCart()
+    console.log('Cart loaded - Items:', cartStore.items.length, 'Total:', cartStore.total)
+  } catch (error) {
+    console.error('Failed to load cart:', error)
+    snackbar.value = {
+      show: true,
+      message: 'Failed to load cart',
+      color: 'error'
+    }
+  }
+}
+
+onMounted(loadCart)
 </script>
 
 <style scoped>

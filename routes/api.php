@@ -109,6 +109,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('deliveries', App\Http\Controllers\Api\DeliveryController::class)->only(['index', 'store']);
         Route::patch('deliveries/{delivery}/status', [App\Http\Controllers\Api\DeliveryController::class, 'updateStatus']);
         Route::get('deliveries/today', [App\Http\Controllers\Api\DeliveryController::class, 'todayDeliveries']);
+        Route::get('deliveries/history', [App\Http\Controllers\Api\DeliveryController::class, 'historyDeliveries']);
 
         // Shipment Management
         Route::apiResource('shipments', App\Http\Controllers\Api\ShipmentController::class)->only(['index', 'store']);

@@ -51,7 +51,7 @@ class DeliveryController extends Controller
 
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
-            'delivery_personnel_id' => 'nullable|exists:users,id',
+            'delivery_personnel_id' => 'required|exists:users,id',
             'scheduled_date' => 'required|date',
             'delivery_notes' => 'nullable|string',
         ]);
@@ -161,6 +161,27 @@ class DeliveryController extends Controller
             ->whereIn('status', ['scheduled', 'out_for_delivery', 'in_transit'])
             ->orderBy('scheduled_date', 'asc')
             ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $deliveries
+        ]);
+    }
+
+    /**
+     * Delivery history (delivered & failed) for delivery personnel
+     */
+    public function historyDeliveries(Request $request)
+    {
+        if (!$request->user()->isDeliveryPersonnel()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $deliveries = Delivery::with(['order.customer', 'order.items.product'])
+            ->where('delivery_personnel_id', $request->user()->id)
+            ->whereIn('status', ['delivered', 'failed'])
+            ->orderBy('scheduled_date', 'desc')
+            ->paginate(20);
 
         return response()->json([
             'success' => true,

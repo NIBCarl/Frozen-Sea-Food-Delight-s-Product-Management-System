@@ -25,10 +25,32 @@ export const useOrderStore = defineStore('orders', {
       
       try {
         const response = await axios.get('/api/v1/orders', { params: filters })
-        this.orders = response.data.data.data || response.data.data
+        // Handle Laravel pagination structure
+        const payload = response?.data?.data
+        let ordersArray = []
+
+        if (Array.isArray(payload)) {
+          // Simple array response
+          ordersArray = payload
+        } else if (payload && payload.data && Array.isArray(payload.data)) {
+          // Laravel pagination response
+          ordersArray = payload.data
+          this.pagination = {
+            current_page: payload.current_page,
+            per_page: payload.per_page,
+            total: payload.total,
+            last_page: payload.last_page
+          }
+        } else {
+          console.warn('Unexpected orders response structure:', payload)
+          ordersArray = []
+        }
+
+        this.orders = ordersArray
         return response.data
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to fetch orders'
+        // Do not clear orders on error, so the user can still see the old data
         throw error
       } finally {
         this.loading = false
@@ -52,18 +74,15 @@ export const useOrderStore = defineStore('orders', {
     },
 
     async createOrder(orderData) {
-      this.loading = true
       this.error = null
-      
       try {
         const response = await axios.post('/api/v1/orders', orderData)
+        // Optimistically prepend the new order; backend returns full order object
         this.orders.unshift(response.data.data)
         return response.data.data
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to create order'
         throw error
-      } finally {
-        this.loading = false
       }
     },
 

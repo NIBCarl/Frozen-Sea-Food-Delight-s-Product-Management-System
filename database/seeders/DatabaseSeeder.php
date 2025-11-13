@@ -16,9 +16,12 @@ class DatabaseSeeder extends Seeder
         // Seed roles and permissions first
         $this->call([
             RolePermissionSeeder::class,
+            SampleUsersSeeder::class,
+            SampleDataSeeder::class,
+            SampleOrderSeeder::class,
         ]);
 
-        // Create test user if it doesn't exist
+        // Ensure a simple test user exists as well
         User::firstOrCreate([
             'email' => 'test@example.com',
         ], [
@@ -26,6 +29,6 @@ class DatabaseSeeder extends Seeder
             'username' => 'testuser',
             'password' => bcrypt('password'),
             'status' => 'active',
-        ])->assignRole('user');
+        ])->assignRole('customer');
     }
 }

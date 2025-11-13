@@ -110,7 +110,7 @@ class SampleDataSeeder extends Seeder
         }
 
         // Create some sample stock movements
-        $adminUser = \App\Models\User::where('email', 'admin@seafoodinventory.com')->first();
+        $adminUser = \App\Models\User::where('email', 'admin@seafood.com')->first();
         $products = Product::all();
 
         $stockMovements = [

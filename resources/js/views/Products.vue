@@ -67,7 +67,7 @@
       >
         <template v-slot:item.primary_image="{ item }">
           <v-avatar size="40" class="ma-2">
-            <v-img :src="item.primary_image?.thumbnail_url || '/storage/products/placeholder.png'" alt="Product Image"></v-img>
+            <v-img :src="item.primary_image?.thumbnail_url || 'https://via.placeholder.com/80x80?text=No+Image'" alt="Product Image"></v-img>
           </v-avatar>
         </template>
 
@@ -94,7 +94,7 @@
                 <v-card-text>
                   <div class="d-flex align-center mb-2">
                     <v-avatar size="40" class="me-3">
-                      <v-img :src="item.primary_image?.thumbnail_url || '/storage/products/placeholder.png'" alt="Product Image"></v-img>
+                      <v-img :src="item.primary_image?.thumbnail_url || 'https://via.placeholder.com/80x80?text=No+Image'" alt="Product Image"></v-img>
                     </v-avatar>
                     <div class="flex-grow-1">
                       <div class="font-weight-bold">{{ item.name }}</div>
@@ -108,6 +108,10 @@
                   <div class="d-flex justify-space-between align-center mb-1">
                     <span class="text-body-2">Category:</span>
                     <span>{{ item.category?.name }}</span>
+                  </div>
+                  <div class="d-flex justify-space-between align-center mb-1">
+                    <span class="text-body-2">Supplier:</span>
+                    <span>{{ item.creator?.name }}</span>
                   </div>
                   <div class="d-flex justify-space-between align-center mb-1">
                     <span class="text-body-2">Price:</span>
@@ -174,6 +178,7 @@ const headers = [
   { title: 'Product ID', key: 'product_id', align: 'start' },
   { title: 'Name', key: 'name' },
   { title: 'Category', key: 'category.name' },
+  { title: 'Supplier', key: 'creator.name' },
   { title: 'Price', key: 'price' },
   { title: 'Stock', key: 'stock_quantity' },
   { title: 'Status', key: 'status' },
@@ -189,6 +194,7 @@ watch(search, () => {
 
 const loadItems = async ({ page, itemsPerPage, sortBy, search }) => {
   await productStore.fetchProducts({ 
+    include_inactive: true,
     page, 
     per_page: itemsPerPage, 
     sort_by: sortBy && sortBy.length ? sortBy[0].key : null,

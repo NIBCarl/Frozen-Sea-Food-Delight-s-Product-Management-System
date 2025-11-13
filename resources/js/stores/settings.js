@@ -1,5 +1,23 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
+
+// helper: ensure roles array of strings in snake_case
+const toSnake = (str) => str
+  .replace(/([a-z])([A-Z])/g, '$1_$2')
+  .replace(/\s+/g, '_')
+  .replace(/-+/g, '_')
+  .toLowerCase();
+const normalizeRoles = (roles) => {
+  if (!roles) return [];
+  if (Array.isArray(roles)) {
+    const arr = roles.map(r => (typeof r === 'string' ? r : r.name));
+    return arr.map(toSnake);
+  }
+  if (typeof roles === 'object') {
+    return Object.values(roles).map(r => toSnake(typeof r === 'string' ? r : r.name));
+  }
+  return [];
+};
 import { useAuthStore } from './auth';
 
 export const useSettingsStore = defineStore('settings', {
@@ -57,8 +75,9 @@ export const useSettingsStore = defineStore('settings', {
           avatar: user.avatar,
         };
 
-        // Update auth store user data as well
+        // Update auth store user data as well (normalize roles)
         const authStore = useAuthStore();
+        user.roles = normalizeRoles(user.roles);
         authStore.user = user;
         
       } catch (error) {
@@ -94,8 +113,9 @@ export const useSettingsStore = defineStore('settings', {
           avatar: user.avatar,
         };
 
-        // Update auth store
+        // Update auth store (normalize roles)
         const authStore = useAuthStore();
+        user.roles = normalizeRoles(user.roles);
         authStore.user = user;
 
         return { success: true, message: response.data.message };

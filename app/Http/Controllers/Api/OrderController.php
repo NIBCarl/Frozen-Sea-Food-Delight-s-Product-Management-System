@@ -23,7 +23,7 @@ class OrderController extends Controller
         $query = Order::with(['customer', 'items.product', 'delivery']);
 
         // Filter by user role
-        if ($request->user()->isCustomer()) {
+        if ($request->user()->hasRole('customer')) {
             $query->where('user_id', $request->user()->id);
         }
 
@@ -77,8 +77,8 @@ class OrderController extends Controller
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
 
-                // Check if product is available
-                if (!$product->is_available) {
+                // Check if product is available and active
+                if (!$product->is_available || in_array($product->status, ['inactive','discontinued'])) {
                     throw new \Exception("Product {$product->name} is not available");
                 }
 
@@ -116,28 +116,37 @@ class OrderController extends Controller
                 'notes' => $request->notes,
             ]);
 
-            // Create order items and update stock
+            // Prepare bulk insert arrays
+            $itemRows = [];
+            $movementRows = [];
             foreach ($orderItems as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
+                $itemRows[] = [
+                    'order_id'   => $order->id,
                     'product_id' => $item['product']->id,
-                    'quantity' => $item['quantity'],
-                    'price' => $item['price'],
-                    'subtotal' => $item['subtotal'],
-                ]);
+                    'quantity'   => $item['quantity'],
+                    'price'      => $item['price'],
+                    'subtotal'   => $item['subtotal'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
 
-                // Update product stock
+                // Decrement stock (still individual but lightweight UPDATE)
                 $item['product']->decrement('stock_quantity', $item['quantity']);
 
-                // Log stock movement
-                StockMovement::create([
+                $movementRows[] = [
                     'product_id' => $item['product']->id,
-                    'type' => 'out',
-                    'quantity' => $item['quantity'],
-                    'reference' => "ORDER-{$order->order_number}",
+                    'type'       => 'out',
+                    'quantity'   => $item['quantity'],
+                    'reference'  => "ORDER-{$order->order_number}",
                     'created_by' => $request->user()->id,
-                ]);
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
+
+            // Bulk insert order items & stock movements
+            OrderItem::insert($itemRows);
+            StockMovement::insert($movementRows);
 
             DB::commit();
 
@@ -167,7 +176,7 @@ class OrderController extends Controller
     public function show(Request $request, Order $order)
     {
         // Check if user can view this order
-        if ($request->user()->isCustomer() && $order->user_id !== $request->user()->id) {
+        if ($request->user()->hasRole('customer') && $order->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -188,7 +197,7 @@ class OrderController extends Controller
      */
     public function updateStatus(Request $request, Order $order)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->hasRole('admin')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -251,7 +260,7 @@ class OrderController extends Controller
     public function destroy(Request $request, Order $order)
     {
         // Check if user can cancel this order
-        if ($request->user()->isCustomer() && $order->user_id !== $request->user()->id) {
+        if ($request->user()->hasRole('customer') && $order->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'

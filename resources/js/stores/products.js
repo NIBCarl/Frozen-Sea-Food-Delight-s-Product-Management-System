@@ -24,6 +24,7 @@ export const useProductStore = defineStore('products', {
     currentPage: (state) => state.pagination.current_page,
     lowStockProducts: (state) => state.products.filter(p => p.is_low_stock),
     activeProducts: (state) => state.products.filter(p => p.status === 'active'),
+    availableProducts: (state) => state.products.filter(p => p.is_available !== false && p.status === 'active'),
   },
 
   actions: {

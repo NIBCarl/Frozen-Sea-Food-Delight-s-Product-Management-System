@@ -33,7 +33,9 @@ class ReportController extends Controller
                 'total_value' => $products->sum(function ($product) {
                     return $product->stock_quantity * $product->price;
                 }),
-                'low_stock_count' => $products->where('is_low_stock', true)->count(),
+                'low_stock_count' => $products->filter(function ($product) {
+                    return (int) $product->stock_quantity <= (int) $product->min_stock_level;
+                })->count(),
             ]
         ]);
     }
@@ -83,16 +85,40 @@ class ReportController extends Controller
 
         switch ($format) {
             case 'pdf':
-                if (empty($viewName)) return response()->json(['message' => 'PDF view not defined for this report type'], 400);
-                $pdf = PDF::loadView($viewName, ['products' => $data]);
+                if (empty($viewName) || !view()->exists($viewName)) {
+                    return response()->json(['message' => 'PDF view not defined for this report type'], 400);
+                }
+                $pdf = Pdf::loadView($viewName, ['products' => $data]);
                 return $pdf->download($fileName . '.pdf');
-            
+
             case 'excel':
-                return Excel::download(new \App\Exports\InventoryExport($data), $fileName . '.xlsx');
-            
             case 'csv':
-                return Excel::download(new \App\Exports\InventoryExport($data), $fileName . '.csv');
-            
+                // Fallback CSV stream to avoid dependency/version issues
+                $headers = [
+                    'Content-Type' => 'text/csv',
+                    'Content-Disposition' => 'attachment; filename=' . $fileName . '.csv',
+                ];
+
+                $callback = function () use ($data) {
+                    $out = fopen('php://output', 'w');
+                    // Header row
+                    fputcsv($out, ['ID', 'Name', 'Category', 'Stock', 'Min Stock', 'Price', 'Status']);
+                    foreach ($data as $product) {
+                        fputcsv($out, [
+                            $product->id,
+                            $product->name,
+                            optional($product->category)->name,
+                            $product->stock_quantity,
+                            $product->min_stock_level,
+                            $product->price,
+                            $product->status,
+                        ]);
+                    }
+                    fclose($out);
+                };
+
+                return response()->stream($callback, 200, $headers);
+
             default:
                 return response()->json(['message' => 'Invalid export format'], 400);
         }

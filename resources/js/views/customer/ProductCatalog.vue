@@ -121,6 +121,10 @@
                 <v-icon size="14">mdi-package-variant</v-icon>
                 <span>{{ product.stock_quantity }} in stock</span>
               </div>
+              <div class="meta-item">
+                <v-icon size="14">mdi-account-circle</v-icon>
+                <span>Supplier: {{ product.creator?.name }}</span>
+              </div>
               <div v-if="product.expiration_date" class="meta-item">
                 <v-icon size="14">mdi-calendar</v-icon>
                 <span>Exp: {{ formatDate(product.expiration_date) }}</span>

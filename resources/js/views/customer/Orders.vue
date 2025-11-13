@@ -3,8 +3,21 @@
     <v-container>
       <v-row class="mb-4">
         <v-col cols="12">
-          <h1 class="text-h4 font-weight-bold">My Orders</h1>
-          <p class="text-subtitle-1 text-grey-darken-1">Track and manage your orders</p>
+          <div class="d-flex justify-space-between align-center">
+            <div>
+              <h1 class="text-h4 font-weight-bold">My Orders</h1>
+              <p class="text-subtitle-1 text-grey-darken-1">Track and manage your orders</p>
+            </div>
+            <v-btn
+              color="primary"
+              variant="outlined"
+              prepend-icon="mdi-refresh"
+              :loading="orderStore.loading"
+              @click="refreshOrders"
+            >
+              Refresh
+            </v-btn>
+          </div>
         </v-col>
       </v-row>
 
@@ -64,41 +77,43 @@
               <!-- Order Progress -->
               <v-divider class="my-3"></v-divider>
               <div class="order-progress">
-                <v-stepper-header>
-                  <v-stepper-item
-                    :complete="isStepComplete(order, 'pending')"
-                    :color="getStepColor(order, 'pending')"
-                    title="Pending"
-                    value="1"
-                  ></v-stepper-item>
+                <v-stepper :model-value="statusOrder.indexOf(order.status) + 1" class="elevation-0" color="primary">
+                  <v-stepper-header>
+                    <v-stepper-item
+                      :complete="isStepComplete(order, 'pending')"
+                      :color="getStepColor(order, 'pending')"
+                      title="Pending"
+                      value="1"
+                    ></v-stepper-item>
 
-                  <v-divider></v-divider>
+                    <v-divider></v-divider>
 
-                  <v-stepper-item
-                    :complete="isStepComplete(order, 'processing')"
-                    :color="getStepColor(order, 'processing')"
-                    title="Processing"
-                    value="2"
-                  ></v-stepper-item>
+                    <v-stepper-item
+                      :complete="isStepComplete(order, 'processing')"
+                      :color="getStepColor(order, 'processing')"
+                      title="Processing"
+                      value="2"
+                    ></v-stepper-item>
 
-                  <v-divider></v-divider>
+                    <v-divider></v-divider>
 
-                  <v-stepper-item
-                    :complete="isStepComplete(order, 'in_transit')"
-                    :color="getStepColor(order, 'in_transit')"
-                    title="In Transit"
-                    value="3"
-                  ></v-stepper-item>
+                    <v-stepper-item
+                      :complete="isStepComplete(order, 'in_transit')"
+                      :color="getStepColor(order, 'in_transit')"
+                      title="In Transit"
+                      value="3"
+                    ></v-stepper-item>
 
-                  <v-divider></v-divider>
+                    <v-divider></v-divider>
 
-                  <v-stepper-item
-                    :complete="isStepComplete(order, 'delivered')"
-                    :color="getStepColor(order, 'delivered')"
-                    title="Delivered"
-                    value="4"
-                  ></v-stepper-item>
-                </v-stepper-header>
+                    <v-stepper-item
+                      :complete="isStepComplete(order, 'delivered')"
+                      :color="getStepColor(order, 'delivered')"
+                      title="Delivered"
+                      value="4"
+                    ></v-stepper-item>
+                  </v-stepper-header>
+                </v-stepper>
               </div>
             </v-card-text>
 
@@ -126,13 +141,25 @@
       </v-row>
 
       <!-- Empty State -->
-      <v-row v-else>
+      <v-row v-else-if="!orderStore.loading">
         <v-col cols="12" class="text-center py-16">
           <v-icon size="64" color="grey">mdi-package-variant</v-icon>
           <p class="text-h6 mt-4">No orders found</p>
           <p class="text-grey">Start shopping to place your first order!</p>
           <v-btn color="primary" class="mt-4" to="/customer/products">
             Browse Products
+          </v-btn>
+        </v-col>
+      </v-row>
+      
+      <!-- Error State -->
+      <v-row v-else-if="orderStore.error">
+        <v-col cols="12" class="text-center py-16">
+          <v-icon size="64" color="error">mdi-alert-circle</v-icon>
+          <p class="text-h6 mt-4">Error Loading Orders</p>
+          <p class="text-grey mb-4">{{ orderStore.error }}</p>
+          <v-btn color="primary" @click="refreshOrders">
+            Try Again
           </v-btn>
         </v-col>
       </v-row>
@@ -231,7 +258,16 @@ const formatDate = (date) => {
 }
 
 const viewOrderDetails = (order) => {
-  router.push({ name: 'customer.order-detail', params: { id: order.id } })
+  try {
+    router.push({ name: 'customer.order-detail', params: { id: order.id } })
+  } catch (error) {
+    console.error('Navigation error:', error)
+    snackbar.value = {
+      show: true,
+      message: 'Failed to navigate to order details',
+      color: 'error'
+    }
+  }
 }
 
 const confirmCancelOrder = (order) => {
@@ -260,9 +296,44 @@ const cancelOrder = async () => {
   }
 }
 
-onMounted(async () => {
-  await orderStore.fetchOrders()
-})
+const loadOrders = async () => {
+  try {
+    console.log('Loading orders for customer...')
+    orderStore.clearError() // Clear any previous errors
+    await orderStore.fetchOrders()
+    console.log('Orders loaded successfully:', orderStore.orders.length, 'orders')
+    
+    // Debug: Log API response structure
+    if (orderStore.orders.length > 0) {
+      console.log('Sample order structure:', {
+        id: orderStore.orders[0].id,
+        order_number: orderStore.orders[0].order_number,
+        status: orderStore.orders[0].status,
+        items_count: orderStore.orders[0].items?.length
+      })
+    } else {
+      console.log('No orders found for current user')
+    }
+  } catch (error) {
+    console.error('Failed to load orders:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    })
+    snackbar.value = {
+      show: true,
+      message: error.response?.data?.message || 'Failed to load orders',
+      color: 'error'
+    }
+  }
+}
+
+onMounted(loadOrders)
+
+// Also expose loadOrders for manual refresh
+const refreshOrders = () => {
+  loadOrders()
+}
 </script>
 
 <style scoped>

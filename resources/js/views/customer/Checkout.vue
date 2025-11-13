@@ -244,7 +244,16 @@ const placeOrder = async () => {
     })
 
     orderNumber.value = order.order_number
-    await cartStore.clearCart()
+
+    // Optimistically clear cart locally for immediate feedback
+    cartStore.items = []
+    cartStore.total = 0
+    cartStore.itemCount = 0
+    if (typeof cartStore.clearError === 'function') cartStore.clearError()
+
+    // Fire-and-forget server clear to persist change
+    cartStore.clearCart().catch(err => console.error('Clear cart error:', err))
+
     successDialog.value = true
   } catch (error) {
     snackbar.value = {
@@ -257,9 +266,12 @@ const placeOrder = async () => {
   }
 }
 
-const goToOrders = () => {
+const goToOrders = async () => {
   successDialog.value = false
-  router.push({ name: 'customer.orders' })
+
+  // Allow dialog to close before navigating
+  await new Promise(resolve => setTimeout(resolve, 100))
+  router.push('/customer/orders')
 }
 
 const continueShopping = () => {

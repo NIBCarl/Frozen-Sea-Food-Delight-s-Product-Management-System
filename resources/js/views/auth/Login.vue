@@ -103,9 +103,13 @@
               <div class="register-section">
                 <p class="register-text">
                   Don't have an account?
-                  <router-link to="/register" class="register-link">
+                  <a 
+                    href="/register" 
+                    class="register-link" 
+                    onclick="window.navigateToRegisterHandler(event)"
+                  >
                     Create Account
-                  </router-link>
+                  </a>
                 </p>
               </div>
 
@@ -232,16 +236,45 @@ const handleLogin = async () => {
   
   loading.value = true;
   try {
-    await authStore.login(form);
+    const loginResponse = await authStore.login(form);
     showSnackbar('Welcome back! Redirecting...', 'success');
     
+    // Use router guards to determine appropriate redirect
+    // Check user roles and redirect accordingly
+    const userRoles = loginResponse.user.roles;
+    
     setTimeout(() => {
-      router.push('/dashboard');
-    }, 1000);
+      if (userRoles.includes('admin')) {
+        router.push('/admin/dashboard');
+      } else if (userRoles.includes('customer')) {
+        router.push('/customer/products');
+      } else if (userRoles.includes('supplier')) {
+        router.push('/supplier/shipments');
+      } else if (userRoles.includes('delivery_personnel')) {
+        router.push('/delivery/today');
+      } else {
+        router.push('/customer/products'); // Default fallback
+      }
+    }, 500); // Reduced delay for faster redirect
   } catch (error) {
     showSnackbar(error.response?.data?.message || 'Invalid credentials', 'error');
   } finally {
     loading.value = false;
+  }
+};
+
+// Navigation handler for register link
+window.navigateToRegisterHandler = (event) => {
+  event.preventDefault();
+  
+  try {
+    if (router) {
+      router.push('/register');
+    } else {
+      window.location.href = '/register';
+    }
+  } catch (error) {
+    window.location.href = '/register';
   }
 };
 </script>

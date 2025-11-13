@@ -133,6 +133,10 @@
             <v-icon class="nav-icon" size="20">mdi-truck-fast</v-icon>
             <span>Today's Deliveries</span>
           </router-link>
+          <router-link to="/delivery/history" class="nav-item" @click="handleNavClick">
+            <v-icon class="nav-icon" size="20">mdi-history</v-icon>
+            <span>Delivery History</span>
+          </router-link>
         </template>
 
         <!-- Common Navigation -->

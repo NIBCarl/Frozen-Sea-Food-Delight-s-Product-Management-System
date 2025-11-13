@@ -1,6 +1,26 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 
+// Helper to normalize roles to array of strings
+const toSnake = (str) => str
+  .replace(/([a-z])([A-Z])/g, '$1_$2')   // camelCase -> camel_Case
+  .replace(/\s+/g, '_')                  // spaces -> _
+  .replace(/-+/g, '_')                    // dashes -> _
+  .toLowerCase();
+
+const normalizeRoles = (roles) => {
+  let arr;
+  if (!roles) arr = [];
+  else if (Array.isArray(roles)) {
+    arr = roles.map(r => (typeof r === 'string' ? r : r.name));
+  } else if (typeof roles === 'object') {
+    arr = Object.values(roles).map(r => (typeof r === 'string' ? r : r.name));
+  } else {
+    arr = [];
+  }
+  return arr.map(toSnake);
+};
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
@@ -13,22 +33,33 @@ export const useAuthStore = defineStore('auth', {
     isLoggedIn: (state) => !!state.token,
     hasRole: (state) => (role) => {
       if (!state.user?.roles) return false;
-      if (Array.isArray(role)) {
-        return role.some(r => state.user.roles.some(userRole => userRole.name === r));
+      if (Array.isArray(state.user.roles)) {
+        // Optimized format from login: array of role names
+        return state.user.roles.includes(role);
       }
+      // Legacy format: array of role objects
       return state.user.roles.some(userRole => userRole.name === role);
     },
-    hasPermission: (state) => (permission) => {
-      if (!state.user?.permissions) return false;
-      if (Array.isArray(permission)) {
-        return permission.some(p => state.user.permissions.some(userPerm => userPerm.name === p));
+    hasAnyRole: (state) => (roles) => {
+      if (!state.user?.roles) return false;
+      if (Array.isArray(state.user.roles)) {
+        return roles.some(role => state.user.roles.includes(role));
       }
-      return state.user.permissions.some(userPerm => userPerm.name === permission);
+      return roles.some(role => state.user.roles.some(userRole => userRole.name === role));
     },
-    isAdmin: (state) => state.user?.roles?.some(role => role.name === 'admin') || false,
-    isManager: (state) => state.user?.roles?.some(role => role.name === 'manager') || false,
+    isAdmin: (state) => {
+      if (!state.user?.roles) return false;
+      if (Array.isArray(state.user.roles)) {
+        return state.user.roles.includes('admin');
+      }
+      return state.user.roles.some(role => role.name === 'admin');
+    },
     canAccessAdminDashboard: (state) => {
-      return state.user?.roles?.some(role => role.name === 'admin') || false;
+      if (!state.user?.roles) return false;
+      if (Array.isArray(state.user.roles)) {
+        return state.user.roles.includes('admin');
+      }
+      return state.user.roles.some(role => role.name === 'admin');
     },
   },
 
@@ -38,7 +69,9 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await axios.post('/api/v1/auth/login', credentials);
         this.token = response.data.token;
-        this.user = response.data.user;
+        const user = response.data.user;
+        user.roles = normalizeRoles(user.roles);
+        this.user = user;
         this.isAuthenticated = true;
         localStorage.setItem('token', this.token);
         axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
@@ -82,7 +115,10 @@ export const useAuthStore = defineStore('auth', {
     async fetchUser() {
       try {
         const response = await axios.get('/api/v1/auth/user');
-        this.user = response.data.user || response.data;
+        // Normalize roles to array of role names for consistency
+        const apiUser = response.data.user || response.data;
+        apiUser.roles = normalizeRoles(apiUser.roles);
+        this.user = apiUser;
         this.isAuthenticated = true;
       } catch (error) {
         console.error('Failed to fetch user:', error);
@@ -116,10 +152,23 @@ export const useAuthStore = defineStore('auth', {
       if (this.token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
         try {
+          // Fetch user data to ensure proper authentication state
           await this.fetchUser();
         } catch (error) {
-          // If user fetch fails, clear auth silently
-          console.warn('Authentication initialization failed:', error.message);
+          // If token is invalid, clear auth
+          console.warn('Token validation failed during initialization:', error.message);
+          this.clearAuth();
+        }
+      }
+    },
+
+    async ensureUserLoaded() {
+      if (this.isAuthenticated && !this.user) {
+        try {
+          await this.fetchUser();
+        } catch (error) {
+          console.warn('Failed to load user data:', error.message);
+          this.clearAuth();
         }
       }
     }

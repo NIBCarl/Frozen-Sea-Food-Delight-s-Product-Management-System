@@ -36,6 +36,8 @@ app.use(vuetify);
 
 app.mount('#app');
 
-// Register Service Worker for PWA functionality
-registerServiceWorker();
-showInstallPrompt();
+// Register Service Worker for PWA functionality only in production
+if (import.meta.env && import.meta.env.PROD) {
+  registerServiceWorker();
+  showInstallPrompt();
+}

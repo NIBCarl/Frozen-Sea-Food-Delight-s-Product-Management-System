@@ -13,7 +13,7 @@
         <v-col cols="12" md="3">
           <v-card color="primary" variant="tonal">
             <v-card-text>
-              <div class="text-h3 font-weight-bold">{{ deliveryStore.scheduledDeliveries.length }}</div>
+              <div class="text-h3 font-weight-bold">{{ scheduledCount }}</div>
               <div class="text-body-1">Scheduled</div>
             </v-card-text>
           </v-card>
@@ -21,7 +21,7 @@
         <v-col cols="12" md="3">
           <v-card color="info" variant="tonal">
             <v-card-text>
-              <div class="text-h3 font-weight-bold">{{ deliveryStore.outForDelivery.length }}</div>
+              <div class="text-h3 font-weight-bold">{{ outForDeliveryCount }}</div>
               <div class="text-body-1">Out for Delivery</div>
             </v-card-text>
           </v-card>
@@ -29,7 +29,7 @@
         <v-col cols="12" md="3">
           <v-card color="success" variant="tonal">
             <v-card-text>
-              <div class="text-h3 font-weight-bold">{{ deliveryStore.completedDeliveries.length }}</div>
+              <div class="text-h3 font-weight-bold">{{ completedCount }}</div>
               <div class="text-body-1">Completed</div>
             </v-card-text>
           </v-card>
@@ -37,7 +37,7 @@
         <v-col cols="12" md="3">
           <v-card color="error" variant="tonal">
             <v-card-text>
-              <div class="text-h3 font-weight-bold">{{ deliveryStore.failedDeliveries.length }}</div>
+              <div class="text-h3 font-weight-bold">{{ failedCount }}</div>
               <div class="text-body-1">Failed</div>
             </v-card-text>
           </v-card>
@@ -213,7 +213,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useDeliveryStore } from '@/stores/deliveries'
 
 const deliveryStore = useDeliveryStore()
@@ -230,6 +230,12 @@ const snackbar = ref({
   message: '',
   color: 'success'
 })
+
+// Summary counts computed from today's deliveries
+const scheduledCount = computed(() => deliveryStore.todayDeliveries.filter(d => d.status === 'scheduled').length)
+const outForDeliveryCount = computed(() => deliveryStore.todayDeliveries.filter(d => d.status === 'out_for_delivery').length)
+const completedCount = computed(() => deliveryStore.todayDeliveries.filter(d => d.status === 'delivered').length)
+const failedCount = computed(() => deliveryStore.todayDeliveries.filter(d => d.status === 'failed').length)
 
 const getStatusColor = (status) => {
   const colors = {

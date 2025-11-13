@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class StockMovementController extends Controller
 {
@@ -37,8 +38,8 @@ class StockMovementController extends Controller
         }
 
         $product = Product::findOrFail($request->product_id);
-        
-        DB::transaction(function () use ($request, $product) {
+
+        $movement = DB::transaction(function () use ($request, $product) {
             $movement = StockMovement::create([
                 'product_id' => $request->product_id,
                 'type' => $request->type,
@@ -63,6 +64,8 @@ class StockMovementController extends Controller
             }
 
             $product->update(['stock_quantity' => max(0, $newQuantity)]);
+
+            return $movement;
         });
 
         return response()->json([

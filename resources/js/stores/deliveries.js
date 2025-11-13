@@ -5,6 +5,7 @@ export const useDeliveryStore = defineStore('deliveries', {
   state: () => ({
     deliveries: [],
     todayDeliveries: [],
+    historyDeliveries: [],
     currentDelivery: null,
     loading: false,
     error: null,
@@ -44,6 +45,21 @@ export const useDeliveryStore = defineStore('deliveries', {
         return response.data.data
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to fetch today\'s deliveries'
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchHistoryDeliveries(page = 1) {
+      this.loading = true
+      this.error = null
+      try {
+        const response = await axios.get('/api/v1/deliveries/history', { params: { page } })
+        this.historyDeliveries = response.data.data.data || response.data.data
+        return response.data.data
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Failed to fetch delivery history'
         throw error
       } finally {
         this.loading = false
