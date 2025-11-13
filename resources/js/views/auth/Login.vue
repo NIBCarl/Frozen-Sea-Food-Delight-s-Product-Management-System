@@ -103,13 +103,12 @@
               <div class="register-section">
                 <p class="register-text">
                   Don't have an account?
-                  <a 
-                    href="/register" 
-                    class="register-link" 
-                    onclick="window.navigateToRegisterHandler(event)"
+                  <router-link 
+                    to="/register" 
+                    class="register-link"
                   >
                     Create Account
-                  </a>
+                  </router-link>
                 </p>
               </div>
 
@@ -289,6 +288,7 @@ window.navigateToRegisterHandler = (event) => {
 
 .bg-pattern {
   position: absolute;
+  pointer-events: none;
   top: 0;
   left: 0;
   right: 0;
@@ -643,6 +643,7 @@ window.navigateToRegisterHandler = (event) => {
   font-weight: 500;
   color: #374151;
   cursor: pointer;
+  width: 100%;
   transition: all 200ms;
   display: flex;
   align-items: center;
