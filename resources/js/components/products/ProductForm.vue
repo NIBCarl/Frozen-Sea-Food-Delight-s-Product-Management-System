@@ -25,10 +25,10 @@
               <v-textarea v-model="formData.description" label="Description" rows="3"></v-textarea>
             </v-col>
             <v-col cols="12" sm="6" md="4">
-              <v-text-field v-model="formData.price" label="Price" type="number" prefix="$" :rules="schemas.product.price"></v-text-field>
+              <v-text-field v-model="formData.price" label="Price" type="number" prefix="₱" :rules="schemas.product.price"></v-text-field>
             </v-col>
             <v-col cols="12" sm="6" md="4">
-              <v-text-field v-model="formData.cost_price" label="Cost Price" type="number" prefix="$" :rules="[rules.numeric, rules.positive]"></v-text-field>
+              <v-text-field v-model="formData.cost_price" label="Cost Price" type="number" prefix="₱" :rules="[rules.numeric, rules.positive]"></v-text-field>
             </v-col>
             <v-col cols="12" sm="6" md="4">
               <v-text-field v-model="formData.stock_quantity" label="Stock Quantity" type="number" :rules="schemas.product.stock_quantity"></v-text-field>
