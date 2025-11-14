@@ -72,7 +72,7 @@
         </template>
 
         <template v-slot:item.price="{ item }">
-          <span>${{ parseFloat(item.price).toFixed(2) }}</span>
+          <span>₱{{ parseFloat(item.price).toFixed(2) }}</span>
         </template>
 
         <template v-slot:item.status="{ item }">
@@ -115,7 +115,7 @@
                   </div>
                   <div class="d-flex justify-space-between align-center mb-1">
                     <span class="text-body-2">Price:</span>
-                    <span class="font-weight-bold">${{ parseFloat(item.price).toFixed(2) }}</span>
+                    <span class="font-weight-bold">₱{{ parseFloat(item.price).toFixed(2) }}</span>
                   </div>
                   <div class="d-flex justify-space-between align-center mb-3">
                     <span class="text-body-2">Stock:</span>
