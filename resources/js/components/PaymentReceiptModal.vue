@@ -10,17 +10,52 @@
 
       <v-card-text class="pa-4">
         <div class="text-body-2 mb-4">
-          Please upload your GCash payment receipt to complete your order.
+          Please send your payment to the GCash number below, then upload your payment receipt to complete your order.
         </div>
 
-        <!-- GCash Info -->
-        <v-alert type="info" variant="tonal" class="mb-4">
-          <div class="text-body-2">
-            <strong>GCash Number:</strong> 09XX XXX XXXX<br>
-            <strong>Account Name:</strong> Frozen Seafood Store<br>
-            <strong>Amount:</strong> ₱{{ totalAmount?.toFixed(2) }}
-          </div>
-        </v-alert>
+        <!-- GCash Payment Instructions -->
+        <v-card variant="outlined" class="mb-4 gcash-info">
+          <v-card-title class="text-h6 pa-3 bg-primary text-white d-flex align-center">
+            <v-icon start>mdi-cellphone</v-icon>
+            GCash Payment Details
+          </v-card-title>
+          <v-card-text class="pa-4">
+            <div class="payment-details">
+              <div class="detail-row mb-3">
+                <div class="detail-label">GCash Number:</div>
+                <div class="detail-value gcash-number">
+                  <span class="text-h6 font-weight-bold text-primary">09381565021</span>
+                  <v-btn
+                    icon="mdi-content-copy"
+                    size="small"
+                    variant="text"
+                    color="primary"
+                    @click="copyGCashNumber"
+                    class="ml-2"
+                  ></v-btn>
+                </div>
+              </div>
+              
+              <div class="detail-row mb-3">
+                <div class="detail-label">Account Name:</div>
+                <div class="detail-value font-weight-medium">Frozen Seafood Delight</div>
+              </div>
+              
+              <div class="detail-row mb-3">
+                <div class="detail-label">Amount to Send:</div>
+                <div class="detail-value">
+                  <span class="text-h6 font-weight-bold text-success">₱{{ totalAmount?.toFixed(2) }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <v-alert type="warning" variant="tonal" density="compact" class="mt-3">
+              <div class="text-caption">
+                <strong>Important:</strong> Please send the exact amount and upload a clear screenshot of your payment confirmation.
+              </div>
+            </v-alert>
+          </v-card-text>
+        </v-card>
 
         <!-- File Upload Area -->
         <div class="upload-area mb-4">
@@ -88,6 +123,17 @@
         </v-btn>
       </v-card-actions>
     </v-card>
+    
+    <!-- Copy Success Snackbar -->
+    <v-snackbar
+      v-model="copySuccess"
+      timeout="2000"
+      color="success"
+      location="top"
+    >
+      <v-icon start>mdi-check-circle</v-icon>
+      GCash number copied to clipboard!
+    </v-snackbar>
   </v-dialog>
 </template>
 
@@ -117,6 +163,7 @@ const selectedFile = ref(null)
 const previewUrl = ref('')
 const uploading = ref(false)
 const errorMessage = ref('')
+const copySuccess = ref(false)
 
 const fileRules = [
   v => !!v || 'Receipt image is required',
@@ -177,11 +224,35 @@ const uploadReceipt = async () => {
   }
 }
 
+const copyGCashNumber = async () => {
+  try {
+    await navigator.clipboard.writeText('09381565021')
+    copySuccess.value = true
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy: ', err)
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea')
+    textArea.value = '09381565021'
+    document.body.appendChild(textArea)
+    textArea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textArea)
+    copySuccess.value = true
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 2000)
+  }
+}
+
 const closeModal = () => {
   selectedFile.value = null
   previewUrl.value = ''
   errorMessage.value = ''
   uploading.value = false
+  copySuccess.value = false
   emit('cancel')
   dialog.value = false
 }
@@ -210,5 +281,58 @@ watch(dialog, (newVal) => {
 
 .border {
   border: 1px solid #e0e0e0;
+}
+
+.gcash-info {
+  border: 2px solid #1976d2;
+}
+
+.payment-details {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-weight: 500;
+  color: #6c757d;
+  min-width: 120px;
+}
+
+.detail-value {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.gcash-number {
+  background-color: #e3f2fd;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #1976d2;
+}
+
+@media (max-width: 600px) {
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .detail-label {
+    min-width: unset;
+  }
 }
 </style>
