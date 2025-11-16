@@ -302,14 +302,14 @@ const todayDeliveries = computed(() => {
   const today = new Date().toISOString().split('T')[0];
   return (deliveryStore.deliveries || [])
     .filter(delivery => {
-      const scheduledDate = delivery.scheduled_at?.split(' ')[0] || delivery.scheduled_at?.split('T')[0];
+      const scheduledDate = delivery.scheduled_date?.split(' ')[0] || delivery.scheduled_date?.split('T')[0];
       return scheduledDate === today;
     })
     .slice(0, 5)
     .map(delivery => ({
       id: delivery.id,
       order_number: delivery.order?.order_number || `ORD-${delivery.order_id}`,
-      scheduled_time: delivery.scheduled_at ? new Date(delivery.scheduled_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'TBD',
+      scheduled_time: delivery.scheduled_date ? new Date(delivery.scheduled_date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD',
       status: delivery.status
     }));
 });

@@ -22,7 +22,7 @@ class Delivery extends Model
     ];
 
     protected $casts = [
-        'scheduled_date' => 'date',
+        'scheduled_date' => 'datetime',
         'actual_delivery_datetime' => 'datetime',
     ];
 

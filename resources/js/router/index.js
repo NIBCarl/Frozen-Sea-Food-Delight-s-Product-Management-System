@@ -139,6 +139,30 @@ const routes = [
     ],
   },
 
+  // Supplier Routes
+  {
+    path: '/supplier',
+    meta: { requiresAuth: true, requiresRole: 'supplier' },
+    children: [
+      {
+        path: 'dashboard',
+        name: 'supplier.dashboard',
+        component: () => import('../views/supplier/Dashboard.vue'),
+      },
+      {
+        path: 'orders',
+        name: 'supplier.orders',
+        component: () => import('../views/supplier/Orders.vue'),
+      },
+      {
+        path: 'orders/:id',
+        name: 'supplier.order-detail',
+        component: () => import('../views/supplier/OrderDetail.vue'),
+        props: true,
+      },
+    ],
+  },
+
   // Admin Routes
   {
     path: '/admin',

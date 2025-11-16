@@ -36,15 +36,29 @@
                   placeholder="Street, Barangay, City"
                 ></v-textarea>
 
-                <v-text-field
-                  v-model="orderData.preferred_delivery_date"
-                  label="Preferred Delivery Date"
-                  prepend-inner-icon="mdi-calendar"
-                  type="date"
-                  variant="outlined"
-                  :min="minDate"
-                  hint="Deliveries are scheduled 2-3 days from order"
-                ></v-text-field>
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="orderData.preferred_delivery_date"
+                      label="Preferred Delivery Date"
+                      prepend-inner-icon="mdi-calendar"
+                      type="date"
+                      variant="outlined"
+                      :min="minDate"
+                      hint="Select your preferred delivery date"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="orderData.preferred_delivery_time"
+                      label="Preferred Delivery Time"
+                      prepend-inner-icon="mdi-clock"
+                      type="time"
+                      variant="outlined"
+                      hint="Select your preferred delivery time"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
 
                 <v-textarea
                   v-model="orderData.notes"
@@ -107,21 +121,89 @@
                 <span class="font-weight-bold">₱{{ cartStore.total.toFixed(2) }}</span>
               </div>
 
-              <v-alert type="info" variant="tonal" class="mt-4" density="compact">
+              <!-- Payment Method Selection -->
+              <div class="payment-section mt-4">
+                <div class="text-subtitle-2 mb-3">Payment Method</div>
+                <v-radio-group v-model="orderData.payment_method" inline>
+                  <v-radio
+                    label="Cash on Delivery"
+                    value="cash_on_delivery"
+                  ></v-radio>
+                  <v-radio
+                    label="GCash"
+                    value="gcash"
+                  ></v-radio>
+                </v-radio-group>
+              </div>
+
+              <!-- Payment Method Info -->
+              <v-alert 
+                v-if="orderData.payment_method === 'cash_on_delivery'"
+                type="info" 
+                variant="tonal" 
+                class="mt-2" 
+                density="compact"
+              >
                 <div class="text-caption">
-                  <strong>Payment Method:</strong> Cash on Delivery
+                  <strong>Cash on Delivery:</strong> Pay when your order is delivered
                 </div>
               </v-alert>
 
-              <v-alert type="warning" variant="tonal" class="mt-2" density="compact">
+              <v-alert 
+                v-if="orderData.payment_method === 'gcash'"
+                type="warning" 
+                variant="tonal" 
+                class="mt-2" 
+                density="compact"
+              >
                 <div class="text-caption">
-                  Please prepare exact amount upon delivery
+                  <strong>GCash Payment:</strong> You'll need to upload payment receipt before checkout
+                </div>
+              </v-alert>
+
+              <!-- Receipt Upload Status -->
+              <v-alert
+                v-if="orderData.payment_method === 'gcash' && paymentReceiptPath"
+                type="success"
+                variant="tonal"
+                class="mt-2"
+                density="compact"
+              >
+                <div class="text-caption">
+                  <v-icon start size="small">mdi-check-circle</v-icon>
+                  Payment receipt uploaded successfully
                 </div>
               </v-alert>
             </v-card-text>
 
             <v-card-actions class="flex-column pa-4">
               <v-btn
+                v-if="orderData.payment_method === 'cash_on_delivery'"
+                color="primary"
+                size="large"
+                block
+                :loading="loading"
+                :disabled="!formValid || !cartStore.hasItems"
+                @click="placeOrder"
+              >
+                <v-icon start>mdi-check-circle</v-icon>
+                Place Order
+              </v-btn>
+
+              <v-btn
+                v-else-if="orderData.payment_method === 'gcash' && !paymentReceiptPath"
+                color="primary"
+                size="large"
+                block
+                :disabled="!formValid || !cartStore.hasItems"
+                @click="showReceiptModal = true"
+              >
+                <v-icon start>mdi-receipt</v-icon>
+                Upload Receipt & Place Order
+              </v-btn>
+
+              <v-btn
+                v-else-if="orderData.payment_method === 'gcash' && paymentReceiptPath"
                 color="primary"
                 size="large"
                 block
@@ -167,6 +249,14 @@
       </v-card>
     </v-dialog>
 
+    <!-- Payment Receipt Modal -->
+    <PaymentReceiptModal
+      v-model="showReceiptModal"
+      :total-amount="cartStore.total"
+      @receipt-uploaded="onReceiptUploaded"
+      @cancel="onReceiptCancel"
+    />
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color">
       {{ snackbar.message }}
@@ -180,6 +270,7 @@ import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { useOrderStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
+import PaymentReceiptModal from '../../components/PaymentReceiptModal.vue'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -191,12 +282,16 @@ const formValid = ref(false)
 const loading = ref(false)
 const successDialog = ref(false)
 const orderNumber = ref('')
+const showReceiptModal = ref(false)
+const paymentReceiptPath = ref('')
 
 const orderData = ref({
   contact_number: authStore.user?.contact_number || '',
   delivery_address: authStore.user?.delivery_address || '',
   preferred_delivery_date: '',
-  notes: ''
+  preferred_delivery_time: '',
+  notes: '',
+  payment_method: 'cash_on_delivery'
 })
 
 const snackbar = ref({
@@ -218,7 +313,6 @@ const rules = {
 
 const minDate = computed(() => {
   const date = new Date()
-  date.setDate(date.getDate() + 2)
   return date.toISOString().split('T')[0]
 })
 
@@ -234,13 +328,27 @@ const placeOrder = async () => {
       quantity: item.quantity
     }))
 
+    // Combine date and time for preferred delivery datetime
+    let preferredDeliveryDate = null
+    if (orderData.value.preferred_delivery_date) {
+      preferredDeliveryDate = orderData.value.preferred_delivery_date
+      if (orderData.value.preferred_delivery_time) {
+        preferredDeliveryDate += ` ${orderData.value.preferred_delivery_time}:00`
+      } else {
+        // Default to 9:00 AM if no time specified
+        preferredDeliveryDate += ` 09:00:00`
+      }
+    }
+
     // Create order
     const order = await orderStore.createOrder({
       items,
       delivery_address: orderData.value.delivery_address,
       contact_number: orderData.value.contact_number,
-      preferred_delivery_date: orderData.value.preferred_delivery_date || null,
-      notes: orderData.value.notes || null
+      preferred_delivery_date: preferredDeliveryDate,
+      notes: orderData.value.notes || null,
+      payment_method: orderData.value.payment_method,
+      payment_receipt_path: paymentReceiptPath.value || null
     })
 
     orderNumber.value = order.order_number
@@ -277,6 +385,21 @@ const goToOrders = async () => {
 const continueShopping = () => {
   successDialog.value = false
   router.push({ name: 'customer.products' })
+}
+
+const onReceiptUploaded = (receiptData) => {
+  paymentReceiptPath.value = receiptData.path
+  showReceiptModal.value = false
+  
+  snackbar.value = {
+    show: true,
+    message: 'Payment receipt uploaded successfully',
+    color: 'success'
+  }
+}
+
+const onReceiptCancel = () => {
+  showReceiptModal.value = false
 }
 
 onMounted(async () => {

@@ -117,13 +117,21 @@
 
         <!-- Supplier Navigation -->
         <template v-if="isSupplier">
+          <router-link to="/supplier/dashboard" class="nav-item" @click="handleNavClick">
+            <v-icon class="nav-icon" size="20">mdi-view-dashboard</v-icon>
+            <span class="nav-text">Dashboard</span>
+          </router-link>
+          <router-link to="/supplier/orders" class="nav-item" @click="handleNavClick">
+            <v-icon class="nav-icon" size="20">mdi-shopping</v-icon>
+            <span class="nav-text">Product Orders</span>
+          </router-link>
           <router-link to="/supplier/shipments" class="nav-item" @click="handleNavClick">
             <v-icon class="nav-icon" size="20">mdi-truck</v-icon>
-            <span>Shipments</span>
+            <span class="nav-text">Shipments</span>
           </router-link>
-          <router-link to="/products" class="nav-item" @click="handleNavClick">
+          <router-link to="/supplier/products" class="nav-item" @click="handleNavClick">
             <v-icon class="nav-icon" size="20">mdi-package-variant</v-icon>
-            <span>Products</span>
+            <span class="nav-text">My Products</span>
           </router-link>
         </template>
 

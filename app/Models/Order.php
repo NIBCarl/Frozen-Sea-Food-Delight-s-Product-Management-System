@@ -24,13 +24,17 @@ class Order extends Model
         'total_amount',
         'payment_method',
         'payment_status',
+        'payment_receipt_path',
+        'payment_verified_at',
+        'payment_verified_by',
         'notes',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
-        'preferred_delivery_date' => 'date',
-        'actual_delivery_date' => 'date',
+        'preferred_delivery_date' => 'datetime',
+        'actual_delivery_date' => 'datetime',
+        'payment_verified_at' => 'datetime',
     ];
 
     /**
@@ -74,6 +78,14 @@ class Order extends Model
     public function delivery(): HasOne
     {
         return $this->hasOne(Delivery::class);
+    }
+
+    /**
+     * Get the admin who verified the payment
+     */
+    public function paymentVerifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'payment_verified_by');
     }
 
     /**
@@ -122,5 +134,37 @@ class Order extends Model
     public function canBeCancelled(): bool
     {
         return in_array($this->status, ['pending', 'processing']);
+    }
+
+    /**
+     * Check if order is using GCash payment
+     */
+    public function isGCashPayment(): bool
+    {
+        return $this->payment_method === 'gcash';
+    }
+
+    /**
+     * Check if payment is pending verification
+     */
+    public function isPaymentVerificationPending(): bool
+    {
+        return $this->payment_status === 'verification_pending';
+    }
+
+    /**
+     * Check if payment verification failed
+     */
+    public function isPaymentVerificationFailed(): bool
+    {
+        return $this->payment_status === 'verification_failed';
+    }
+
+    /**
+     * Check if payment is verified/paid
+     */
+    public function isPaymentVerified(): bool
+    {
+        return $this->payment_status === 'paid';
     }
 }

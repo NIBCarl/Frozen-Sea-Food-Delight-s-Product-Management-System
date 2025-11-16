@@ -95,6 +95,13 @@ Route::prefix('v1')->group(function () {
         // Order Management
         Route::apiResource('orders', App\Http\Controllers\Api\OrderController::class)->only(['index', 'store', 'show', 'destroy']);
         Route::patch('orders/{order}/status', [App\Http\Controllers\Api\OrderController::class, 'updateStatus']);
+        Route::patch('orders/{order}/verify-payment', [App\Http\Controllers\Api\OrderController::class, 'verifyPayment']);
+
+        // Payment Receipt Management
+        Route::prefix('payment-receipts')->group(function () {
+            Route::post('/upload', [App\Http\Controllers\Api\PaymentReceiptController::class, 'upload']);
+            Route::delete('/delete', [App\Http\Controllers\Api\PaymentReceiptController::class, 'delete']);
+        });
 
         // Cart Management
         Route::prefix('cart')->group(function () {
@@ -109,11 +116,22 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('deliveries', App\Http\Controllers\Api\DeliveryController::class)->only(['index', 'store']);
         Route::patch('deliveries/{delivery}/status', [App\Http\Controllers\Api\DeliveryController::class, 'updateStatus']);
         Route::get('deliveries/today', [App\Http\Controllers\Api\DeliveryController::class, 'todayDeliveries']);
+        Route::get('deliveries/today/statistics', [App\Http\Controllers\Api\DeliveryController::class, 'todayStatistics']);
         Route::get('deliveries/history', [App\Http\Controllers\Api\DeliveryController::class, 'historyDeliveries']);
 
         // Shipment Management
         Route::apiResource('shipments', App\Http\Controllers\Api\ShipmentController::class)->only(['index', 'store']);
         Route::post('shipments/{shipment}/mark-arrived', [App\Http\Controllers\Api\ShipmentController::class, 'markAsArrived']);
         Route::post('shipments/{shipment}/confirm-arrival', [App\Http\Controllers\Api\ShipmentController::class, 'confirmArrival']);
+
+        // Supplier Order Management
+        Route::prefix('supplier')->group(function () {
+            Route::get('orders', [App\Http\Controllers\Api\SupplierOrderController::class, 'index']);
+            Route::get('orders/statistics', [App\Http\Controllers\Api\SupplierOrderController::class, 'statistics']);
+            Route::get('orders/recent', [App\Http\Controllers\Api\SupplierOrderController::class, 'recentOrders']);
+            Route::get('orders/{order}', [App\Http\Controllers\Api\SupplierOrderController::class, 'show']);
+            Route::patch('orders/{order}/mark-ready', [App\Http\Controllers\Api\SupplierOrderController::class, 'markAsReady']);
+            Route::post('orders/{order}/report-issue', [App\Http\Controllers\Api\SupplierOrderController::class, 'reportIssue']);
+        });
     });
 });

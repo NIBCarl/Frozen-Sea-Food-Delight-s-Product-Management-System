@@ -55,8 +55,10 @@ class OrderController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'delivery_address' => 'required|string',
             'contact_number' => 'required|string',
-            'preferred_delivery_date' => 'nullable|date|after:today',
+            'preferred_delivery_date' => 'nullable|date',
             'notes' => 'nullable|string',
+            'payment_method' => 'required|in:cash_on_delivery,gcash',
+            'payment_receipt_path' => 'required_if:payment_method,gcash|nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -103,16 +105,20 @@ class OrderController extends Controller
                 ];
             }
 
+            // Determine payment status based on payment method
+            $paymentStatus = $request->payment_method === 'gcash' ? 'verification_pending' : 'pending';
+
             // Create order
             $order = Order::create([
                 'user_id' => $request->user()->id,
                 'delivery_address' => $request->delivery_address,
                 'contact_number' => $request->contact_number,
-                'preferred_delivery_date' => $request->preferred_delivery_date ?? now()->addDays(2),
+                'preferred_delivery_date' => $request->preferred_delivery_date ?? now(),
                 'status' => 'pending',
                 'total_amount' => $totalAmount,
-                'payment_method' => 'cash_on_delivery',
-                'payment_status' => 'pending',
+                'payment_method' => $request->payment_method,
+                'payment_status' => $paymentStatus,
+                'payment_receipt_path' => $request->payment_receipt_path,
                 'notes' => $request->notes,
             ]);
 
@@ -308,6 +314,63 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to cancel order',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify GCash payment (Admin only)
+     */
+    public function verifyPayment(Request $request, Order $order)
+    {
+        // Check if user is admin
+        if (!$request->user()->hasRole('admin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'action' => 'required|in:approve,reject',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            if ($request->action === 'approve') {
+                $order->update([
+                    'payment_status' => 'paid',
+                    'payment_verified_at' => now(),
+                    'payment_verified_by' => $request->user()->id,
+                ]);
+                $message = 'Payment verified successfully';
+            } else {
+                $order->update([
+                    'payment_status' => 'verification_failed',
+                    'notes' => $order->notes . "\n\nPayment verification failed: " . ($request->notes ?? 'No reason provided'),
+                ]);
+                $message = 'Payment verification rejected';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => $order->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify payment',
                 'error' => $e->getMessage()
             ], 500);
         }

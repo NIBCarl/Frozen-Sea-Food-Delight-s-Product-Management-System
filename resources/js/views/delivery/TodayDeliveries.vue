@@ -15,6 +15,7 @@
             <v-card-text>
               <div class="text-h3 font-weight-bold">{{ scheduledCount }}</div>
               <div class="text-body-1">Scheduled</div>
+              <div class="text-caption">Total pending</div>
             </v-card-text>
           </v-card>
         </v-col>
@@ -23,6 +24,7 @@
             <v-card-text>
               <div class="text-h3 font-weight-bold">{{ outForDeliveryCount }}</div>
               <div class="text-body-1">Out for Delivery</div>
+              <div class="text-caption">Currently active</div>
             </v-card-text>
           </v-card>
         </v-col>
@@ -31,6 +33,7 @@
             <v-card-text>
               <div class="text-h3 font-weight-bold">{{ completedCount }}</div>
               <div class="text-body-1">Completed</div>
+              <div class="text-caption">All time total</div>
             </v-card-text>
           </v-card>
         </v-col>
@@ -39,6 +42,7 @@
             <v-card-text>
               <div class="text-h3 font-weight-bold">{{ failedCount }}</div>
               <div class="text-body-1">Failed</div>
+              <div class="text-caption">All time total</div>
             </v-card-text>
           </v-card>
         </v-col>
@@ -80,6 +84,12 @@
                 <div v-for="item in delivery.order?.items" :key="item.id" class="text-body-2">
                   {{ item.quantity }}x {{ item.product?.name }}
                 </div>
+              </div>
+
+              <!-- Scheduled Time -->
+              <div class="mb-3">
+                <div class="text-caption text-grey">Scheduled Time</div>
+                <div class="text-body-2 font-weight-medium">{{ formatDeliveryTime(delivery.scheduled_date) }}</div>
               </div>
 
               <!-- Amount -->
@@ -231,11 +241,11 @@ const snackbar = ref({
   color: 'success'
 })
 
-// Summary counts computed from today's deliveries
-const scheduledCount = computed(() => deliveryStore.todayDeliveries.filter(d => d.status === 'scheduled').length)
-const outForDeliveryCount = computed(() => deliveryStore.todayDeliveries.filter(d => d.status === 'out_for_delivery').length)
-const completedCount = computed(() => deliveryStore.todayDeliveries.filter(d => d.status === 'delivered').length)
-const failedCount = computed(() => deliveryStore.todayDeliveries.filter(d => d.status === 'failed').length)
+// Summary counts from statistics API
+const scheduledCount = computed(() => deliveryStore.todayStatistics.scheduled)
+const outForDeliveryCount = computed(() => deliveryStore.todayStatistics.out_for_delivery)
+const completedCount = computed(() => deliveryStore.todayStatistics.delivered)
+const failedCount = computed(() => deliveryStore.todayStatistics.failed)
 
 const getStatusColor = (status) => {
   const colors = {
@@ -260,9 +270,21 @@ const formatDate = (date) => {
   })
 }
 
+const formatDeliveryTime = (date) => {
+  return new Date(date).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  })
+}
+
 const updateStatus = async (delivery, status) => {
   try {
     await deliveryStore.updateDeliveryStatus(delivery.id, { status })
+    // Refresh statistics after status update
+    await deliveryStore.fetchTodayStatistics()
     snackbar.value = {
       show: true,
       message: 'Delivery status updated',
@@ -296,6 +318,8 @@ const confirmComplete = async () => {
       status: 'delivered',
       delivery_notes: deliveryNotes.value
     })
+    // Refresh statistics after completion
+    await deliveryStore.fetchTodayStatistics()
     completeDialog.value = false
     snackbar.value = {
       show: true,
@@ -320,6 +344,8 @@ const confirmFailed = async () => {
       status: 'failed',
       failure_reason: failureReason.value
     })
+    // Refresh statistics after marking as failed
+    await deliveryStore.fetchTodayStatistics()
     failedDialog.value = false
     snackbar.value = {
       show: true,
@@ -343,7 +369,10 @@ const openMap = (address) => {
 }
 
 onMounted(async () => {
-  await deliveryStore.fetchTodayDeliveries()
+  await Promise.all([
+    deliveryStore.fetchTodayDeliveries(),
+    deliveryStore.fetchTodayStatistics()
+  ])
 })
 </script>
 

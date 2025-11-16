@@ -55,6 +55,25 @@
             </div>
           </template>
 
+          <!-- Payment -->
+          <template v-slot:item.payment="{ item }">
+            <div class="d-flex flex-column">
+              <v-chip 
+                :color="item.payment_method === 'gcash' ? 'primary' : 'secondary'" 
+                size="x-small"
+                class="mb-1"
+              >
+                {{ item.payment_method === 'gcash' ? 'GCash' : 'COD' }}
+              </v-chip>
+              <v-chip 
+                :color="getPaymentStatusColor(item.payment_status)" 
+                size="x-small"
+              >
+                {{ getPaymentStatusText(item.payment_status) }}
+              </v-chip>
+            </div>
+          </template>
+
           <!-- Status -->
           <template v-slot:item.status="{ item }">
             <v-chip :color="getStatusColor(item.status)" size="small">
@@ -78,7 +97,28 @@
                   View Details
                 </v-list-item>
                 <v-list-item
-                  v-if="item.status === 'pending'"
+                  v-if="item.payment_method === 'gcash' && item.payment_status === 'verification_pending'"
+                  prepend-icon="mdi-check-circle"
+                  @click="verifyPayment(item, 'approve')"
+                >
+                  Approve Payment
+                </v-list-item>
+                <v-list-item
+                  v-if="item.payment_method === 'gcash' && item.payment_status === 'verification_pending'"
+                  prepend-icon="mdi-close-circle"
+                  @click="verifyPayment(item, 'reject')"
+                >
+                  Reject Payment
+                </v-list-item>
+                <v-list-item
+                  v-if="item.payment_method === 'gcash' && item.payment_receipt_path"
+                  prepend-icon="mdi-receipt"
+                  @click="viewReceipt(item)"
+                >
+                  View Receipt
+                </v-list-item>
+                <v-list-item
+                  v-if="item.status === 'pending' && (item.payment_method === 'cash_on_delivery' || item.payment_status === 'paid')"
                   prepend-icon="mdi-check"
                   @click="updateOrderStatus(item, 'processing')"
                 >
@@ -122,10 +162,10 @@
 
             <v-text-field
               v-model="deliveryData.scheduled_date"
-              label="Scheduled Date"
-              type="date"
+              label="Scheduled Date & Time"
+              type="datetime-local"
               variant="outlined"
-              :min="minDate"
+              :min="minDateTime"
             ></v-text-field>
 
             <v-textarea
@@ -186,6 +226,7 @@ const headers = [
   { title: 'Order #', key: 'order_number' },
   { title: 'Customer', key: 'customer' },
   { title: 'Items', key: 'items' },
+  { title: 'Payment', key: 'payment' },
   { title: 'Status', key: 'status' },
   { title: 'Total', key: 'total_amount' },
   { title: 'Date', key: 'created_at' },
@@ -203,8 +244,8 @@ const deliveryPersonnel = computed(() => {
   return userStore.users.filter(u => u.roles?.some(r => r.name === 'delivery_personnel'))
 })
 
-const minDate = computed(() => {
-  return new Date().toISOString().split('T')[0]
+const minDateTime = computed(() => {
+  return new Date().toISOString().slice(0, 16)
 })
 
 const getStatusColor = (status) => {
@@ -220,6 +261,26 @@ const getStatusColor = (status) => {
 
 const getStatusText = (status) => {
   return status.replace('_', ' ').toUpperCase()
+}
+
+const getPaymentStatusColor = (status) => {
+  switch (status) {
+    case 'paid': return 'success'
+    case 'pending': return 'warning'
+    case 'verification_pending': return 'info'
+    case 'verification_failed': return 'error'
+    default: return 'grey'
+  }
+}
+
+const getPaymentStatusText = (status) => {
+  switch (status) {
+    case 'paid': return 'PAID'
+    case 'pending': return 'PENDING'
+    case 'verification_pending': return 'VERIFY'
+    case 'verification_failed': return 'FAILED'
+    default: return status?.toUpperCase() || 'UNKNOWN'
+  }
 }
 
 const viewOrder = (order) => {
@@ -246,9 +307,15 @@ const updateOrderStatus = async (order, status) => {
 
 const assignDelivery = (order) => {
   selectedOrder.value = order
+  
+  // Use order's preferred delivery date as default, or today if not set
+  const defaultDate = order.preferred_delivery_date 
+    ? new Date(order.preferred_delivery_date).toISOString().slice(0, 16)
+    : new Date().toISOString().slice(0, 16)
+  
   deliveryData.value = {
     delivery_personnel_id: null,
-    scheduled_date: new Date().toISOString().split('T')[0],
+    scheduled_date: defaultDate,
     delivery_notes: ''
   }
   deliveryDialog.value = true
@@ -276,6 +343,45 @@ const confirmAssignDelivery = async () => {
     }
   } finally {
     assigning.value = false
+  }
+}
+
+const verifyPayment = async (order, action) => {
+  try {
+    const response = await fetch(`/api/v1/orders/${order.id}/verify-payment`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ action })
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      snackbar.value = {
+        show: true,
+        message: `Payment ${action === 'approve' ? 'approved' : 'rejected'} successfully`,
+        color: 'success'
+      }
+      await orderStore.fetchOrders()
+    } else {
+      throw new Error(data.message)
+    }
+  } catch (error) {
+    snackbar.value = {
+      show: true,
+      message: `Failed to ${action} payment`,
+      color: 'error'
+    }
+  }
+}
+
+const viewReceipt = (order) => {
+  if (order.payment_receipt_path) {
+    const receiptUrl = `/storage/${order.payment_receipt_path}`
+    window.open(receiptUrl, '_blank')
   }
 }
 

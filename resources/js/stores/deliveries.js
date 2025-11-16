@@ -5,6 +5,14 @@ export const useDeliveryStore = defineStore('deliveries', {
   state: () => ({
     deliveries: [],
     todayDeliveries: [],
+    todayStatistics: {
+      scheduled: 0,
+      out_for_delivery: 0,
+      in_transit: 0,
+      delivered: 0,
+      failed: 0,
+      total: 0
+    },
     historyDeliveries: [],
     currentDelivery: null,
     loading: false,
@@ -48,6 +56,22 @@ export const useDeliveryStore = defineStore('deliveries', {
         throw error
       } finally {
         this.loading = false
+      }
+    },
+
+    async fetchTodayStatistics() {
+      this.error = null
+      
+      try {
+        console.log('Fetching today statistics...')
+        const response = await axios.get('/api/v1/deliveries/today/statistics')
+        console.log('Statistics response:', response.data)
+        this.todayStatistics = response.data.data
+        return response.data.data
+      } catch (error) {
+        console.error('Statistics fetch error:', error)
+        this.error = error.response?.data?.message || 'Failed to fetch today\'s statistics'
+        throw error
       }
     },
 

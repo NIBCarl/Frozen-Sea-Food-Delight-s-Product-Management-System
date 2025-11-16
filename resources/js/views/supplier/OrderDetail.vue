@@ -1,5 +1,5 @@
 <template>
-  <div class="order-detail-page pa-4">
+  <div class="supplier-order-detail pa-4">
     <v-container>
       <!-- Header -->
       <v-row class="mb-4">
@@ -22,7 +22,7 @@
       </v-row>
 
       <!-- Loading -->
-      <v-progress-linear v-if="orderStore.loading" indeterminate color="primary"></v-progress-linear>
+      <v-progress-linear v-if="supplierOrderStore.loading" indeterminate color="primary"></v-progress-linear>
 
       <!-- Order Details -->
       <div v-else-if="order">
@@ -47,8 +47,8 @@
                     </div>
 
                     <div class="info-section">
-                      <div class="info-label">Delivery Address</div>
-                      <div class="info-value">{{ order.delivery_address }}</div>
+                      <div class="info-label">Customer</div>
+                      <div class="info-value">{{ order.customer?.name }}</div>
                     </div>
 
                     <div class="info-section">
@@ -56,16 +56,16 @@
                       <div class="info-value">{{ order.contact_number }}</div>
                     </div>
 
-                    <div v-if="order.preferred_delivery_date" class="info-section">
-                      <div class="info-label">Preferred Delivery</div>
-                      <div class="info-value">{{ formatDeliveryDate(order.preferred_delivery_date) }}</div>
+                    <div class="info-section">
+                      <div class="info-label">Delivery Address</div>
+                      <div class="info-value">{{ order.delivery_address }}</div>
                     </div>
                   </v-col>
 
                   <v-col cols="12" md="6">
                     <div class="info-section">
-                      <div class="info-label">Total Amount</div>
-                      <div class="info-value text-h6 font-weight-bold">₱{{ order.total_amount }}</div>
+                      <div class="info-label">Your Revenue</div>
+                      <div class="info-value text-h6 font-weight-bold">₱{{ formatCurrency(order.supplier_total) }}</div>
                     </div>
 
                     <div class="info-section">
@@ -89,6 +89,11 @@
                         {{ getPaymentStatusText(order.payment_status) }}
                       </v-chip>
                     </div>
+
+                    <div v-if="order.preferred_delivery_date" class="info-section">
+                      <div class="info-label">Preferred Delivery</div>
+                      <div class="info-value">{{ formatDeliveryDate(order.preferred_delivery_date) }}</div>
+                    </div>
                   </v-col>
                 </v-row>
 
@@ -99,9 +104,9 @@
               </v-card-text>
             </v-card>
 
-            <!-- Order Items -->
+            <!-- Your Products in this Order -->
             <v-card>
-              <v-card-title>Order Items ({{ order.items?.length || 0 }})</v-card-title>
+              <v-card-title>Your Products ({{ order.items?.length || 0 }})</v-card-title>
               <v-divider></v-divider>
 
               <v-list>
@@ -119,8 +124,8 @@
                   <v-list-item-title>{{ item.product?.name }}</v-list-item-title>
                   <v-list-item-subtitle>
                     <div>Quantity: {{ item.quantity }}</div>
-                    <div>Unit Price: ₱{{ item.price }}</div>
-                    <div class="font-weight-bold">Subtotal: ₱{{ item.subtotal }}</div>
+                    <div>Unit Price: ₱{{ formatCurrency(item.price) }}</div>
+                    <div class="font-weight-bold">Subtotal: ₱{{ formatCurrency(item.subtotal) }}</div>
                   </v-list-item-subtitle>
                 </v-list-item>
               </v-list>
@@ -128,15 +133,15 @@
               <v-divider></v-divider>
               <v-card-text class="text-right">
                 <div class="text-h6 font-weight-bold">
-                  Total: ₱{{ order.total_amount }}
+                  Your Total Revenue: ₱{{ formatCurrency(order.supplier_total) }}
                 </div>
               </v-card-text>
             </v-card>
           </v-col>
 
-          <!-- Order Progress -->
+          <!-- Order Progress & Delivery Info -->
           <v-col cols="12" md="4">
-            <v-card>
+            <v-card class="mb-4">
               <v-card-title>Order Progress</v-card-title>
               <v-divider></v-divider>
 
@@ -147,7 +152,7 @@
                       :complete="isStepComplete('pending')"
                       :color="getStepColor('pending')"
                       title="Order Placed"
-                      subtitle="Your order has been received"
+                      subtitle="Customer placed the order"
                       value="1"
                     >
                       <template v-slot:icon>
@@ -161,7 +166,7 @@
                       :complete="isStepComplete('processing')"
                       :color="getStepColor('processing')"
                       title="Processing"
-                      subtitle="We're preparing your order"
+                      subtitle="Order is being prepared"
                       value="2"
                     >
                       <template v-slot:icon>
@@ -175,7 +180,7 @@
                       :complete="isStepComplete('in_transit')"
                       :color="getStepColor('in_transit')"
                       title="In Transit"
-                      subtitle="Your order is on the way"
+                      subtitle="Order is on the way"
                       value="3"
                     >
                       <template v-slot:icon>
@@ -209,29 +214,35 @@
                   This order has been cancelled
                 </v-alert>
               </v-card-text>
+            </v-card>
 
-              <v-card-actions v-if="order.status === 'pending' || order.status === 'processing'">
-                <v-btn
-                  color="error"
-                  variant="outlined"
-                  block
-                  prepend-icon="mdi-cancel"
-                  @click="confirmCancelOrder"
-                >
-                  Cancel Order
-                </v-btn>
-              </v-card-actions>
+            <!-- Delivery Information -->
+            <v-card v-if="order.delivery">
+              <v-card-title>Delivery Information</v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
+                <div class="info-section">
+                  <div class="info-label">Delivery Personnel</div>
+                  <div class="info-value">{{ order.delivery.deliveryPersonnel?.name || 'Not assigned' }}</div>
+                </div>
+                <div class="info-section">
+                  <div class="info-label">Delivery Status</div>
+                  <v-chip :color="getDeliveryStatusColor(order.delivery.status)" size="small">
+                    {{ getDeliveryStatusText(order.delivery.status) }}
+                  </v-chip>
+                </div>
+              </v-card-text>
             </v-card>
           </v-col>
         </v-row>
       </div>
 
       <!-- Error State -->
-      <v-row v-else-if="orderStore.error">
+      <v-row v-else-if="supplierOrderStore.error">
         <v-col cols="12" class="text-center py-16">
           <v-icon size="64" color="error">mdi-alert-circle</v-icon>
           <p class="text-h6 mt-4">Error Loading Order</p>
-          <p class="text-grey mb-4">{{ orderStore.error }}</p>
+          <p class="text-grey mb-4">{{ supplierOrderStore.error }}</p>
           <v-btn color="primary" @click="loadOrder">
             Try Again
           </v-btn>
@@ -243,47 +254,24 @@
         <v-col cols="12" class="text-center py-16">
           <v-icon size="64" color="grey">mdi-package-variant-closed</v-icon>
           <p class="text-h6 mt-4">Order Not Found</p>
-          <p class="text-grey mb-4">The order you're looking for doesn't exist or you don't have access to it.</p>
-          <v-btn color="primary" to="/customer/orders">
+          <p class="text-grey mb-4">The order you're looking for doesn't exist or doesn't contain your products.</p>
+          <v-btn color="primary" to="/supplier/orders">
             Back to Orders
           </v-btn>
         </v-col>
       </v-row>
     </v-container>
-
-    <!-- Cancel Order Dialog -->
-    <v-dialog v-model="cancelDialog" max-width="400">
-      <v-card>
-        <v-card-title>Cancel Order?</v-card-title>
-        <v-card-text>
-          Are you sure you want to cancel order #{{ order?.order_number }}?
-          This action cannot be undone.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="cancelDialog = false">No, Keep It</v-btn>
-          <v-btn color="error" variant="flat" :loading="cancelling" @click="cancelOrder">
-            Yes, Cancel
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Snackbar -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color">
-      {{ snackbar.message }}
-    </v-snackbar>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useOrderStore } from '@/stores/orders'
+import { useSupplierOrderStore } from '@/stores/supplierOrders'
 
 const router = useRouter()
 const route = useRoute()
-const orderStore = useOrderStore()
+const supplierOrderStore = useSupplierOrderStore()
 
 const props = defineProps({
   id: {
@@ -292,18 +280,10 @@ const props = defineProps({
   }
 })
 
-const cancelDialog = ref(false)
-const cancelling = ref(false)
-const snackbar = ref({
-  show: false,
-  message: '',
-  color: 'success'
-})
-
-const order = computed(() => orderStore.currentOrder)
+const order = computed(() => supplierOrderStore.currentOrder)
 
 const breadcrumbs = [
-  { title: 'My Orders', to: '/customer/orders' },
+  { title: 'My Orders', to: '/supplier/orders' },
   { title: `Order #${order.value?.order_number || props.id}`, disabled: true }
 ]
 
@@ -328,6 +308,41 @@ const getStatusColor = (status) => {
 
 const getStatusText = (status) => {
   return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+const getPaymentStatusColor = (status) => {
+  switch (status) {
+    case 'paid': return 'success'
+    case 'pending': return 'warning'
+    case 'verification_pending': return 'info'
+    case 'verification_failed': return 'error'
+    default: return 'grey'
+  }
+}
+
+const getPaymentStatusText = (status) => {
+  switch (status) {
+    case 'paid': return 'PAID'
+    case 'pending': return 'PENDING'
+    case 'verification_pending': return 'VERIFICATION PENDING'
+    case 'verification_failed': return 'VERIFICATION FAILED'
+    default: return status?.toUpperCase() || 'UNKNOWN'
+  }
+}
+
+const getDeliveryStatusColor = (status) => {
+  const colors = {
+    scheduled: 'grey',
+    out_for_delivery: 'info',
+    in_transit: 'primary',
+    delivered: 'success',
+    failed: 'error'
+  }
+  return colors[status] || 'grey'
+}
+
+const getDeliveryStatusText = (status) => {
+  return status?.replace('_', ' ').toUpperCase() || 'UNKNOWN'
 }
 
 const isStepComplete = (step) => {
@@ -372,63 +387,15 @@ const formatDeliveryDate = (date) => {
   })
 }
 
-const getPaymentStatusColor = (status) => {
-  switch (status) {
-    case 'paid': return 'success'
-    case 'pending': return 'warning'
-    case 'verification_pending': return 'info'
-    case 'verification_failed': return 'error'
-    default: return 'grey'
-  }
-}
-
-const getPaymentStatusText = (status) => {
-  switch (status) {
-    case 'paid': return 'PAID'
-    case 'pending': return 'PENDING'
-    case 'verification_pending': return 'VERIFICATION PENDING'
-    case 'verification_failed': return 'VERIFICATION FAILED'
-    default: return status?.toUpperCase() || 'UNKNOWN'
-  }
+const formatCurrency = (amount) => {
+  return parseFloat(amount || 0).toFixed(2)
 }
 
 const loadOrder = async () => {
   try {
-    await orderStore.fetchOrder(props.id)
+    await supplierOrderStore.fetchOrder(props.id)
   } catch (error) {
     console.error('Failed to load order:', error)
-    snackbar.value = {
-      show: true,
-      message: 'Failed to load order details',
-      color: 'error'
-    }
-  }
-}
-
-const confirmCancelOrder = () => {
-  cancelDialog.value = true
-}
-
-const cancelOrder = async () => {
-  cancelling.value = true
-  try {
-    await orderStore.cancelOrder(order.value.id)
-    cancelDialog.value = false
-    snackbar.value = {
-      show: true,
-      message: 'Order cancelled successfully',
-      color: 'success'
-    }
-    // Reload order to show updated status
-    await loadOrder()
-  } catch (error) {
-    snackbar.value = {
-      show: true,
-      message: error.response?.data?.message || 'Failed to cancel order',
-      color: 'error'
-    }
-  } finally {
-    cancelling.value = false
   }
 }
 
