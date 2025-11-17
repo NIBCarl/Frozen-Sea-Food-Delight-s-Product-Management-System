@@ -33,6 +33,33 @@ class ProductController extends Controller
             }
         }
 
+        // Seafood-specific filters
+        if ($request->filled('fish_type')) {
+            $query->byFishType($request->fish_type);
+        }
+
+        if ($request->boolean('frozen_only')) {
+            $query->frozen();
+        }
+
+        if ($request->filled('freshness_grade')) {
+            $query->byGrade($request->freshness_grade);
+        }
+
+        if ($request->filled('origin_waters')) {
+            $query->fromWaters($request->origin_waters);
+        }
+
+        if ($request->boolean('expiring_soon')) {
+            $days = $request->input('expiring_days', 7);
+            $query->expiringSoon($days);
+        }
+
+        if ($request->boolean('exclude_expired')) {
+            $query->whereDate('expiration_date', '>=', now())
+                  ->orWhereNull('expiration_date');
+        }
+
         $perPage = $request->input('per_page', 15);
         $products = $query->paginate($perPage);
 
@@ -55,6 +82,17 @@ class ProductController extends Controller
             'dimensions' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive,discontinued',
             'featured' => 'boolean',
+            // Seafood-specific fields
+            'catch_date' => 'nullable|date|before_or_equal:today',
+            'expiration_date' => 'nullable|date|after:catch_date',
+            'storage_temperature' => 'nullable|string|max:20',
+            'fishing_method' => 'nullable|string|max:100',
+            'origin_waters' => 'nullable|string|max:100',
+            'processing_date' => 'nullable|date|after_or_equal:catch_date|before_or_equal:today',
+            'is_frozen' => 'nullable|boolean',
+            'fish_type' => 'nullable|string|max:100',
+            'weight_kg' => 'nullable|numeric|min:0',
+            'freshness_grade' => 'nullable|in:A,B,C',
         ]);
 
         if ($validator->fails()) {
@@ -148,6 +186,17 @@ class ProductController extends Controller
             'dimensions' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive,discontinued',
             'featured' => 'boolean',
+            // Seafood-specific fields
+            'catch_date' => 'nullable|date|before_or_equal:today',
+            'expiration_date' => 'nullable|date|after:catch_date',
+            'storage_temperature' => 'nullable|string|max:20',
+            'fishing_method' => 'nullable|string|max:100',
+            'origin_waters' => 'nullable|string|max:100',
+            'processing_date' => 'nullable|date|after_or_equal:catch_date|before_or_equal:today',
+            'is_frozen' => 'nullable|boolean',
+            'fish_type' => 'nullable|string|max:100',
+            'weight_kg' => 'nullable|numeric|min:0',
+            'freshness_grade' => 'nullable|in:A,B,C',
         ]);
 
         if ($validator->fails()) {

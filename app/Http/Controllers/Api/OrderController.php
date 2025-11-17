@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ShippingZone;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Order::with(['customer', 'items.product', 'delivery']);
+        $query = Order::with(['customer', 'items.product', 'delivery', 'shippingZone']);
 
         // Filter by user role
         if ($request->user()->hasRole('customer')) {
@@ -59,6 +60,7 @@ class OrderController extends Controller
             'notes' => 'nullable|string',
             'payment_method' => 'required|in:cash_on_delivery,gcash',
             'payment_receipt_path' => 'required_if:payment_method,gcash|nullable|string',
+            'shipping_zone_id' => 'required|exists:shipping_zones,id',
         ]);
 
         if ($validator->fails()) {
@@ -105,6 +107,16 @@ class OrderController extends Controller
                 ];
             }
 
+            // Get shipping zone and calculate shipping cost
+            $shippingZone = ShippingZone::findOrFail($request->shipping_zone_id);
+            
+            if (!$shippingZone->is_active) {
+                throw new \Exception("Selected shipping zone is not available");
+            }
+
+            $shippingCost = $shippingZone->base_shipping_rate;
+            $totalAmountWithShipping = $totalAmount + $shippingCost;
+
             // Determine payment status based on payment method
             $paymentStatus = $request->payment_method === 'gcash' ? 'verification_pending' : 'pending';
 
@@ -115,7 +127,9 @@ class OrderController extends Controller
                 'contact_number' => $request->contact_number,
                 'preferred_delivery_date' => $request->preferred_delivery_date ?? now(),
                 'status' => 'pending',
-                'total_amount' => $totalAmount,
+                'total_amount' => $totalAmountWithShipping,
+                'shipping_zone_id' => $shippingZone->id,
+                'shipping_cost' => $shippingCost,
                 'payment_method' => $request->payment_method,
                 'payment_status' => $paymentStatus,
                 'payment_receipt_path' => $request->payment_receipt_path,
@@ -154,6 +168,20 @@ class OrderController extends Controller
             OrderItem::insert($itemRows);
             StockMovement::insert($movementRows);
 
+            // Create delivery record for the order (only if one doesn't exist)
+            if (!\App\Models\Delivery::where('order_id', $order->id)->exists()) {
+                $scheduledDate = $request->preferred_delivery_date 
+                    ? \Carbon\Carbon::parse($request->preferred_delivery_date)
+                    : now()->addDay(); // Default to tomorrow if no date specified
+
+                \App\Models\Delivery::create([
+                    'order_id' => $order->id,
+                    'scheduled_date' => $scheduledDate,
+                    'status' => 'scheduled',
+                    'delivery_personnel_id' => null, // Will be assigned later by admin
+                ]);
+            }
+
             DB::commit();
 
             // Load relationships
@@ -189,7 +217,7 @@ class OrderController extends Controller
             ], 403);
         }
 
-        $order->load(['customer', 'items.product.images', 'delivery.deliveryPersonnel']);
+        $order->load(['customer', 'items.product.images', 'delivery.deliveryPersonnel', 'shippingZone']);
 
         return response()->json([
             'success' => true,

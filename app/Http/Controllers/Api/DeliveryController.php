@@ -157,9 +157,11 @@ class DeliveryController extends Controller
         //     return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         // }
 
-        // Show all today's active deliveries, not just assigned to current user
+        // Show today's and upcoming active deliveries (within next 7 days)
+        // This is more practical for delivery personnel to prepare ahead
         $deliveries = Delivery::with(['order.customer', 'order.items.product'])
-            ->today()
+            ->where('scheduled_date', '>=', today())
+            ->where('scheduled_date', '<=', today()->addDays(7))
             ->whereIn('status', ['scheduled', 'out_for_delivery', 'in_transit'])
             ->orderBy('scheduled_date', 'asc')
             ->get();
@@ -202,21 +204,22 @@ class DeliveryController extends Controller
         //     return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         // }
 
-        // Get all deliveries by status (not limited to today)
-        $allDeliveries = Delivery::all();
+        // Get TODAY's deliveries by status
+        $todayDeliveries = Delivery::whereDate('scheduled_date', today())->get();
 
         $statistics = [
-            'scheduled' => $allDeliveries->where('status', 'scheduled')->count(),
-            'out_for_delivery' => $allDeliveries->where('status', 'out_for_delivery')->count(),
-            'in_transit' => $allDeliveries->where('status', 'in_transit')->count(),
-            'delivered' => $allDeliveries->where('status', 'delivered')->count(),
-            'failed' => $allDeliveries->where('status', 'failed')->count(),
-            'total' => $allDeliveries->count()
+            'scheduled' => $todayDeliveries->where('status', 'scheduled')->count(),
+            'out_for_delivery' => $todayDeliveries->where('status', 'out_for_delivery')->count(),
+            'in_transit' => $todayDeliveries->where('status', 'in_transit')->count(),
+            'delivered' => $todayDeliveries->where('status', 'delivered')->count(),
+            'failed' => $todayDeliveries->where('status', 'failed')->count(),
+            'total' => $todayDeliveries->count()
         ];
 
         // Debug logging
-        \Log::info('Delivery Statistics Debug:', [
-            'total_deliveries' => $allDeliveries->count(),
+        \Log::info('Today Delivery Statistics:', [
+            'date' => today()->toDateString(),
+            'total_deliveries' => $todayDeliveries->count(),
             'statistics' => $statistics
         ]);
 

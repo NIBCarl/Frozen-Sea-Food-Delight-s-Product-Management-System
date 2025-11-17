@@ -63,8 +63,9 @@ export const useProductStore = defineStore('products', {
       this.loading = true;
       try {
         const response = await axios.post('/api/v1/products', productData);
-        this.products.unshift(response.data);
-        return response.data;
+        const product = response.data.data || response.data;
+        this.products.unshift(product);
+        return product;
       } catch (error) {
         throw error;
       } finally {
@@ -76,11 +77,12 @@ export const useProductStore = defineStore('products', {
       this.loading = true;
       try {
         const response = await axios.put(`/api/v1/products/${id}`, productData);
+        const product = response.data.data || response.data;
         const index = this.products.findIndex(p => p.id === id);
         if (index !== -1) {
-          this.products[index] = response.data;
+          this.products[index] = product;
         }
-        return response.data;
+        return product;
       } catch (error) {
         throw error;
       } finally {

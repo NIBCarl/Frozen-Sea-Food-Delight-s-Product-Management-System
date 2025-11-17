@@ -197,7 +197,7 @@
                 <span class="stock-text">{{ product.stock_quantity }} units left</span>
               </div>
             </div>
-            <button class="btn-restock">
+            <button class="btn-restock" @click="navigateToProduct(product.id)" title="Restock product">
               <v-icon size="16">mdi-plus</v-icon>
             </button>
           </div>
@@ -208,6 +208,16 @@
             <p>All products well stocked</p>
           </div>
         </div>
+      </div>
+
+      <!-- Expiring Products Widget -->
+      <div class="widget-container widget-half">
+        <ExpiringProductsWidget />
+      </div>
+
+      <!-- Regional Shipping Widget -->
+      <div class="widget-container widget-wide">
+        <RegionalShippingWidget />
       </div>
 
       <!-- Quick Actions -->
@@ -264,22 +274,48 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useOrderStore } from '@/stores/orders';
+import ExpiringProductsWidget from '@/components/admin/ExpiringProductsWidget.vue';
+import RegionalShippingWidget from '@/components/admin/RegionalShippingWidget.vue';
 import { useProductStore } from '@/stores/products';
 import { useDeliveryStore } from '@/stores/deliveries';
+
+const router = useRouter();
 
 const authStore = useAuthStore();
 const orderStore = useOrderStore();
 const productStore = useProductStore();
 const deliveryStore = useDeliveryStore();
 
+// Low stock products from database (must be declared before stats)
+const lowStockProducts = computed(() => {
+  // Filter products with stock <= 15 (low stock threshold)
+  const LOW_STOCK_THRESHOLD = 15;
+  
+  return (productStore.products || [])
+    .filter(product => {
+      const stock = parseInt(product.stock_quantity) || 0;
+      const minLevel = parseInt(product.min_stock_level) || LOW_STOCK_THRESHOLD;
+      return stock > 0 && stock <= minLevel;
+    })
+    .slice(0, 5)
+    .map(product => ({
+      id: product.id,
+      name: product.name,
+      stock_quantity: product.stock_quantity || 0,
+      min_stock_level: product.min_stock_level || LOW_STOCK_THRESHOLD,
+      image: product.primary_image?.url || product.image_url || null
+    }));
+});
+
 // Real stats computed from database
 const stats = computed(() => ({
   totalOrders: orderStore.orders?.length || 0,
   totalRevenue: orderStore.orders?.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0) || 0,
   totalProducts: productStore.products?.length || 0,
-  lowStockItems: productStore.lowStockProducts?.length || 0,
+  lowStockItems: lowStockProducts.value?.length || 0,
 }));
 
 // Recent orders from database (last 5)
@@ -314,19 +350,6 @@ const todayDeliveries = computed(() => {
     }));
 });
 
-// Low stock products from database
-const lowStockProducts = computed(() => {
-  return (productStore.lowStockProducts || [])
-    .slice(0, 5)
-    .map(product => ({
-      id: product.id,
-      name: product.name,
-      stock_quantity: product.stock_quantity || 0,
-      min_stock_level: product.min_stock_level || 0,
-      image: product.primary_image?.url || product.image_url || null
-    }));
-});
-
 const formatNumber = (num) => {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
@@ -353,6 +376,11 @@ const getStockClass = (current, min) => {
   if (percentage <= 25) return 'progress-critical';
   if (percentage <= 50) return 'progress-warning';
   return 'progress-good';
+};
+
+// Navigate to product edit page
+const navigateToProduct = (productId) => {
+  router.push({ name: 'Products' });
 };
 
 // Load all dashboard data from database
@@ -1064,6 +1092,36 @@ onMounted(async () => {
   .table-wrapper {
     overflow-x: auto;
   }
+  
+  .widget-container {
+    grid-column: span 12;
+  }
+  
+  .widget-half {
+    grid-column: span 6;
+  }
+  
+  .widget-wide {
+    grid-column: span 6;
+  }
+}
+
+/* Widget Container Styles */
+.widget-container {
+  grid-column: span 4;
+}
+
+.widget-half {
+  grid-column: span 4;
+}
+
+.widget-wide {
+  grid-column: span 8;
+}
+
+/* Ensure widgets fill their containers */
+.widget-container > * {
+  height: 100%;
 }
 </style>
 

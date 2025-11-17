@@ -36,6 +36,32 @@
                   placeholder="Street, Barangay, City"
                 ></v-textarea>
 
+                <v-select
+                  v-model="orderData.shipping_zone_id"
+                  :items="shippingZones"
+                  item-title="display_name"
+                  item-value="id"
+                  label="Shipping Zone *"
+                  prepend-inner-icon="mdi-map-marker-radius"
+                  variant="outlined"
+                  :rules="[rules.required]"
+                  hint="Select your delivery zone for shipping cost calculation"
+                  persistent-hint
+                  @update:model-value="calculateShipping"
+                >
+                  <template v-slot:item="{ item, props }">
+                    <v-list-item v-bind="props">
+                      <template v-slot:prepend>
+                        <v-icon v-if="item.raw.requires_sea_transport" color="info">mdi-ferry</v-icon>
+                        <v-icon v-else color="success">mdi-truck</v-icon>
+                      </template>
+                      <template v-slot:append>
+                        <v-chip size="small" color="primary">+₱{{ item.raw.base_shipping_rate }}</v-chip>
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
+
                 <v-row>
                   <v-col cols="12" md="6">
                     <v-text-field
@@ -111,14 +137,14 @@
               
               <div class="summary-row">
                 <span>Delivery Fee</span>
-                <span class="font-weight-bold">₱0.00</span>
+                <span class="font-weight-bold">₱{{ shippingCost.toFixed(2) }}</span>
               </div>
 
               <v-divider class="my-3"></v-divider>
 
               <div class="summary-row text-h6">
                 <span class="font-weight-bold">Total</span>
-                <span class="font-weight-bold">₱{{ cartStore.total.toFixed(2) }}</span>
+                <span class="font-weight-bold">₱{{ (cartStore.total + shippingCost).toFixed(2) }}</span>
               </div>
 
               <!-- Payment Method Selection -->
@@ -271,6 +297,7 @@ import { useCartStore } from '@/stores/cart'
 import { useOrderStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
 import PaymentReceiptModal from '../../components/PaymentReceiptModal.vue'
+import axios from 'axios'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -285,9 +312,13 @@ const orderNumber = ref('')
 const showReceiptModal = ref(false)
 const paymentReceiptPath = ref('')
 
+const shippingZones = ref([])
+const shippingCost = ref(0)
+
 const orderData = ref({
   contact_number: authStore.user?.contact_number || '',
   delivery_address: authStore.user?.delivery_address || '',
+  shipping_zone_id: null,
   preferred_delivery_date: '',
   preferred_delivery_time: '',
   notes: '',
@@ -315,6 +346,35 @@ const minDate = computed(() => {
   const date = new Date()
   return date.toISOString().split('T')[0]
 })
+
+const fetchShippingZones = async () => {
+  try {
+    const response = await axios.get('/api/v1/shipping-zones')
+    shippingZones.value = response.data.data.map(zone => ({
+      ...zone,
+      display_name: `${zone.name}, ${zone.province} (₱${zone.base_shipping_rate})${zone.requires_sea_transport ? ' - Ferry' : ''}`
+    }))
+  } catch (error) {
+    console.error('Failed to fetch shipping zones:', error)
+    snackbar.value = {
+      show: true,
+      message: 'Failed to load shipping zones',
+      color: 'error'
+    }
+  }
+}
+
+const calculateShipping = () => {
+  if (!orderData.value.shipping_zone_id) {
+    shippingCost.value = 0
+    return
+  }
+  
+  const selectedZone = shippingZones.value.find(z => z.id === orderData.value.shipping_zone_id)
+  if (selectedZone) {
+    shippingCost.value = parseFloat(selectedZone.base_shipping_rate) || 0
+  }
+}
 
 const placeOrder = async () => {
   const { valid } = await form.value.validate()
@@ -345,6 +405,7 @@ const placeOrder = async () => {
       items,
       delivery_address: orderData.value.delivery_address,
       contact_number: orderData.value.contact_number,
+      shipping_zone_id: orderData.value.shipping_zone_id,
       preferred_delivery_date: preferredDeliveryDate,
       notes: orderData.value.notes || null,
       payment_method: orderData.value.payment_method,
@@ -403,7 +464,10 @@ const onReceiptCancel = () => {
 }
 
 onMounted(async () => {
-  await cartStore.fetchCart()
+  await Promise.all([
+    cartStore.fetchCart(),
+    fetchShippingZones()
+  ])
   
   if (!cartStore.hasItems) {
     router.push({ name: 'customer.cart' })

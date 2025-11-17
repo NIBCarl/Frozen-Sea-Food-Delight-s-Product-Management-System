@@ -10,9 +10,9 @@
         </v-col>
       </v-row>
 
-      <!-- Status Filter -->
+      <!-- Filters Row -->
       <v-row class="mb-4">
-        <v-col cols="12">
+        <v-col cols="12" md="8">
           <v-chip-group v-model="selectedStatus" mandatory>
             <v-chip value="all" filter>All Orders</v-chip>
             <v-chip value="pending" filter color="warning">Pending</v-chip>
@@ -20,6 +20,23 @@
             <v-chip value="in_transit" filter color="primary">In Transit</v-chip>
             <v-chip value="delivered" filter color="success">Delivered</v-chip>
           </v-chip-group>
+        </v-col>
+        
+        <!-- Regional Zone Filter -->
+        <v-col cols="12" md="4">
+          <v-select
+            v-model="selectedRegion"
+            :items="regionFilters"
+            label="Filter by Region"
+            density="compact"
+            variant="outlined"
+            hide-details
+            clearable
+          >
+            <template v-slot:prepend-inner>
+              <v-icon size="20">mdi-map-marker-radius</v-icon>
+            </template>
+          </v-select>
         </v-col>
       </v-row>
 
@@ -53,6 +70,31 @@
             <div v-if="item.items?.length > 2" class="text-caption text-grey">
               +{{ item.items.length - 2 }} more
             </div>
+          </template>
+
+          <!-- Shipping Zone -->
+          <template v-slot:item.shipping_zone="{ item }">
+            <div v-if="item.shipping_zone" class="d-flex flex-column">
+              <div class="font-weight-medium text-body-2">
+                {{ item.shipping_zone.name }}
+              </div>
+              <div class="text-caption text-grey d-flex align-center">
+                <v-icon v-if="item.shipping_zone.requires_sea_transport" size="12" class="mr-1" color="info">
+                  mdi-ferry
+                </v-icon>
+                {{ item.shipping_zone.province }}
+              </div>
+              <v-chip 
+                v-if="item.shipping_cost > 0" 
+                size="x-small" 
+                color="primary" 
+                variant="outlined"
+                class="mt-1"
+              >
+                +₱{{ item.shipping_cost }}
+              </v-chip>
+            </div>
+            <span v-else class="text-grey text-caption">No zone</span>
           </template>
 
           <!-- Payment -->
@@ -204,9 +246,16 @@ const deliveryStore = useDeliveryStore()
 const userStore = useUserStore()
 
 const selectedStatus = ref('all')
+const selectedRegion = ref(null)
 const deliveryDialog = ref(false)
 const deliveryForm = ref(null)
 const deliveryFormValid = ref(false)
+
+const regionFilters = [
+  { title: 'All Regions', value: null },
+  { title: 'Cebu (Local)', value: 'cebu' },
+  { title: 'Surigao Region (Inter-island)', value: 'surigao' }
+]
 const assigning = ref(false)
 const selectedOrder = ref(null)
 
@@ -226,6 +275,7 @@ const headers = [
   { title: 'Order #', key: 'order_number' },
   { title: 'Customer', key: 'customer' },
   { title: 'Items', key: 'items' },
+  { title: 'Shipping Zone', key: 'shipping_zone' },
   { title: 'Payment', key: 'payment' },
   { title: 'Status', key: 'status' },
   { title: 'Total', key: 'total_amount' },
@@ -234,10 +284,27 @@ const headers = [
 ]
 
 const filteredOrders = computed(() => {
-  if (selectedStatus.value === 'all') {
-    return orderStore.orders
+  let orders = orderStore.orders
+
+  // Filter by status
+  if (selectedStatus.value !== 'all') {
+    orders = orders.filter(o => o.status === selectedStatus.value)
   }
-  return orderStore.orders.filter(o => o.status === selectedStatus.value)
+
+  // Filter by region
+  if (selectedRegion.value) {
+    orders = orders.filter(o => {
+      const zoneName = o.shipping_zone?.province || ''
+      if (selectedRegion.value === 'cebu') {
+        return zoneName === 'Cebu'
+      } else if (selectedRegion.value === 'surigao') {
+        return zoneName.includes('Surigao') || zoneName.includes('Agusan') || zoneName.includes('Dinagat')
+      }
+      return true
+    })
+  }
+
+  return orders
 })
 
 const deliveryPersonnel = computed(() => {

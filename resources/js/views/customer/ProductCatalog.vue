@@ -74,20 +74,41 @@
           <!-- Product Image -->
           <div class="product-image-section">
             <img
-              :src="product.primary_image?.path || '/images/placeholder-product.jpg'"
+              :src="product.primaryImage?.path || product.primary_image?.path || '/images/placeholder-product.jpg'"
               :alt="product.name"
               class="product-image"
             />
             
             <!-- Badges -->
             <div class="product-badges">
-              <span v-if="product.stock_quantity < 10" class="product-badge badge-warning">
+              <!-- Freshness Badge -->
+              <span 
+                v-if="product.expiration_date" 
+                :class="['product-badge', `badge-${getFreshnessBadgeType(product)}`]"
+              >
+                <v-icon size="12">{{ getFreshnessIcon(product) }}</v-icon>
+                {{ getFreshnessText(product) }}
+              </span>
+              
+              <!-- Quality Grade -->
+              <span 
+                v-if="product.freshness_grade" 
+                :class="['product-badge', `badge-grade-${product.freshness_grade.toLowerCase()}`]"
+              >
+                <v-icon size="12">mdi-star</v-icon>
+                Grade {{ product.freshness_grade }}
+              </span>
+              
+              <!-- Frozen Badge -->
+              <span v-if="product.is_frozen" class="product-badge badge-info">
+                <v-icon size="12">mdi-snowflake</v-icon>
+                Frozen
+              </span>
+              
+              <!-- Stock Warning -->
+              <span v-if="product.stock_quantity < 10 && product.stock_quantity > 0" class="product-badge badge-warning">
                 <v-icon size="12">mdi-alert</v-icon>
                 Low Stock
-              </span>
-              <span v-if="product.is_expiring_soon" class="product-badge badge-error">
-                <v-icon size="12">mdi-clock-alert</v-icon>
-                Expiring Soon
               </span>
             </div>
 
@@ -102,7 +123,13 @@
 
           <!-- Product Details -->
           <div class="product-details-section">
-            <div class="product-category">{{ product.category?.name }}</div>
+            <div class="product-category">
+              {{ product.category?.name }}
+              <span v-if="product.fish_type" class="fish-type-tag">
+                <v-icon size="12">mdi-fish</v-icon>
+                {{ product.fish_type }}
+              </span>
+            </div>
             <h3 class="product-name">{{ product.name }}</h3>
             <p class="product-description">{{ truncate(product.description, 60) }}</p>
 
@@ -112,7 +139,7 @@
                 <span class="currency">₱</span>
                 <span class="price">{{ product.price }}</span>
               </div>
-              <div class="price-unit">per {{ product.weight }}kg</div>
+              <div class="price-unit">per {{ product.weight_kg || product.weight || 1 }}kg</div>
             </div>
 
             <!-- Meta Info -->
@@ -121,13 +148,13 @@
                 <v-icon size="14">mdi-package-variant</v-icon>
                 <span>{{ product.stock_quantity }} in stock</span>
               </div>
-              <div class="meta-item">
-                <v-icon size="14">mdi-account-circle</v-icon>
-                <span>Supplier: {{ product.creator?.name }}</span>
+              <div v-if="product.origin_waters" class="meta-item">
+                <v-icon size="14">mdi-waves</v-icon>
+                <span>{{ product.origin_waters }}</span>
               </div>
               <div v-if="product.expiration_date" class="meta-item">
-                <v-icon size="14">mdi-calendar</v-icon>
-                <span>Exp: {{ formatDate(product.expiration_date) }}</span>
+                <v-icon size="14">mdi-calendar-clock</v-icon>
+                <span>{{ getDaysUntilExpiry(product) }} days left</span>
               </div>
             </div>
 
@@ -288,6 +315,44 @@ const addToCart = async (product) => {
 
 const goToCart = () => {
   router.push({ name: 'customer.cart' })
+}
+
+// Seafood freshness helpers
+const getDaysUntilExpiry = (product) => {
+  if (!product.expiration_date) return null
+  const expiry = new Date(product.expiration_date)
+  const today = new Date()
+  const diffTime = expiry - today
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays > 0 ? diffDays : 0
+}
+
+const getFreshnessText = (product) => {
+  const days = getDaysUntilExpiry(product)
+  if (days === null) return 'Fresh'
+  if (days === 0) return 'Expires Today!'
+  if (days < 0) return 'Expired'
+  if (days <= 3) return `${days}d left`
+  if (days <= 7) return `${days} days`
+  return 'Very Fresh'
+}
+
+const getFreshnessBadgeType = (product) => {
+  const days = getDaysUntilExpiry(product)
+  if (days === null) return 'success'
+  if (days < 0) return 'error'
+  if (days <= 3) return 'error'
+  if (days <= 7) return 'warning'
+  return 'success'
+}
+
+const getFreshnessIcon = (product) => {
+  const days = getDaysUntilExpiry(product)
+  if (days === null) return 'mdi-check-circle'
+  if (days < 0) return 'mdi-alert-circle'
+  if (days <= 3) return 'mdi-clock-alert'
+  if (days <= 7) return 'mdi-clock'
+  return 'mdi-check-circle'
 }
 
 const resetFilters = () => {
@@ -634,6 +699,11 @@ onMounted(async () => {
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
 }
 
+.badge-success {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: #064e3b;
+}
+
 .badge-warning {
   background: linear-gradient(135deg, #fbbf24, #fcd34d);
   color: #78350f;
@@ -642,6 +712,39 @@ onMounted(async () => {
 .badge-error {
   background: linear-gradient(135deg, #f87171, #fca5a5);
   color: #7f1d1d;
+}
+
+.badge-info {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: #1e3a8a;
+}
+
+.badge-grade-a {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: #064e3b;
+}
+
+.badge-grade-b {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #78350f;
+}
+
+.badge-grade-c {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  color: #7f1d1d;
+}
+
+.fish-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(25, 118, 210, 0.1);
+  color: #1976d2;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .product-overlay {

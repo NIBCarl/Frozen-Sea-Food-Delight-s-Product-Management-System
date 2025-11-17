@@ -160,6 +160,11 @@ const routes = [
         component: () => import('../views/supplier/OrderDetail.vue'),
         props: true,
       },
+      {
+        path: 'products',
+        name: 'supplier.products',
+        component: () => import('../views/supplier/Products.vue'),
+      },
     ],
   },
 

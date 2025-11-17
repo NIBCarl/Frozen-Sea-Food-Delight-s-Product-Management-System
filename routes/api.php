@@ -113,11 +113,12 @@ Route::prefix('v1')->group(function () {
         });
 
         // Delivery Management
-        Route::apiResource('deliveries', App\Http\Controllers\Api\DeliveryController::class)->only(['index', 'store']);
-        Route::patch('deliveries/{delivery}/status', [App\Http\Controllers\Api\DeliveryController::class, 'updateStatus']);
-        Route::get('deliveries/today', [App\Http\Controllers\Api\DeliveryController::class, 'todayDeliveries']);
+        // Specific routes must come BEFORE resource routes to avoid conflicts
         Route::get('deliveries/today/statistics', [App\Http\Controllers\Api\DeliveryController::class, 'todayStatistics']);
+        Route::get('deliveries/today', [App\Http\Controllers\Api\DeliveryController::class, 'todayDeliveries']);
         Route::get('deliveries/history', [App\Http\Controllers\Api\DeliveryController::class, 'historyDeliveries']);
+        Route::patch('deliveries/{delivery}/status', [App\Http\Controllers\Api\DeliveryController::class, 'updateStatus']);
+        Route::apiResource('deliveries', App\Http\Controllers\Api\DeliveryController::class)->only(['index', 'store']);
 
         // Shipment Management
         Route::apiResource('shipments', App\Http\Controllers\Api\ShipmentController::class)->only(['index', 'store']);
@@ -132,6 +133,16 @@ Route::prefix('v1')->group(function () {
             Route::get('orders/{order}', [App\Http\Controllers\Api\SupplierOrderController::class, 'show']);
             Route::patch('orders/{order}/mark-ready', [App\Http\Controllers\Api\SupplierOrderController::class, 'markAsReady']);
             Route::post('orders/{order}/report-issue', [App\Http\Controllers\Api\SupplierOrderController::class, 'reportIssue']);
+        });
+
+        // Shipping Zones
+        Route::prefix('shipping-zones')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\ShippingZoneController::class, 'index']);
+            Route::get('/cebu', [App\Http\Controllers\Api\ShippingZoneController::class, 'cebuZones']);
+            Route::get('/surigao', [App\Http\Controllers\Api\ShippingZoneController::class, 'surigaoZones']);
+            Route::get('/province/{province}', [App\Http\Controllers\Api\ShippingZoneController::class, 'byProvince']);
+            Route::post('/calculate', [App\Http\Controllers\Api\ShippingZoneController::class, 'calculateShipping']);
+            Route::get('/{shippingZone}', [App\Http\Controllers\Api\ShippingZoneController::class, 'show']);
         });
     });
 });

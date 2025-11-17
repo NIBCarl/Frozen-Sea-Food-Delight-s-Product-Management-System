@@ -29,6 +29,16 @@ class Product extends Model
         'status',
         'featured',
         'created_by',
+        // Seafood-specific attributes
+        'catch_date',
+        'storage_temperature',
+        'fishing_method',
+        'origin_waters',
+        'processing_date',
+        'is_frozen',
+        'fish_type',
+        'weight_kg',
+        'freshness_grade',
     ];
 
     protected $casts = [
@@ -41,6 +51,11 @@ class Product extends Model
         'status' => 'string',
         'expiration_date' => 'date',
         'is_available' => 'boolean',
+        // Seafood-specific casts
+        'catch_date' => 'date',
+        'processing_date' => 'date',
+        'is_frozen' => 'boolean',
+        'weight_kg' => 'decimal:2',
     ];
 
     public function category()
@@ -134,5 +149,115 @@ class Product extends Model
         }
         
         return $this->expiration_date->isPast();
+    }
+
+    // Seafood-specific methods
+
+    /**
+     * Check if this is a seafood product
+     */
+    public function isSeafood(): bool
+    {
+        return !is_null($this->fish_type) || !is_null($this->catch_date);
+    }
+
+    /**
+     * Scope to filter by fish type
+     */
+    public function scopeByFishType($query, string $fishType)
+    {
+        return $query->where('fish_type', $fishType);
+    }
+
+    /**
+     * Scope to filter frozen products only
+     */
+    public function scopeFrozen($query)
+    {
+        return $query->where('is_frozen', true);
+    }
+
+    /**
+     * Scope to filter by freshness grade
+     */
+    public function scopeByGrade($query, string $grade)
+    {
+        return $query->where('freshness_grade', $grade);
+    }
+
+    /**
+     * Scope to filter by origin waters
+     */
+    public function scopeFromWaters($query, string $waters)
+    {
+        return $query->where('origin_waters', $waters);
+    }
+
+    /**
+     * Get days until expiration
+     */
+    public function daysUntilExpiry(): ?int
+    {
+        if (!$this->expiration_date) {
+            return null;
+        }
+
+        if ($this->expiration_date->isPast()) {
+            return 0;
+        }
+
+        return (int) now()->diffInDays($this->expiration_date, false);
+    }
+
+    /**
+     * Get human-readable freshness status
+     */
+    public function getFreshnessStatus(): string
+    {
+        $days = $this->daysUntilExpiry();
+        
+        if ($days === null) {
+            return 'N/A';
+        }
+
+        if ($days <= 0) {
+            return 'Expired';
+        }
+
+        if ($days <= 3) {
+            return 'Expiring Soon';
+        }
+
+        if ($days <= 7) {
+            return 'Fresh';
+        }
+
+        return 'Very Fresh';
+    }
+
+    /**
+     * Get freshness color for UI (green, yellow, red)
+     */
+    public function getFreshnessColor(): string
+    {
+        $days = $this->daysUntilExpiry();
+        
+        if ($days === null) {
+            return 'grey';
+        }
+
+        if ($days <= 0) {
+            return 'red';
+        }
+
+        if ($days <= 3) {
+            return 'orange';
+        }
+
+        if ($days <= 7) {
+            return 'yellow';
+        }
+
+        return 'green';
     }
 }

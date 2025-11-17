@@ -3,8 +3,8 @@
     <v-container fluid>
       <v-row class="mb-4">
         <v-col cols="12">
-          <h1 class="text-h4 font-weight-bold">Today's Deliveries</h1>
-          <p class="text-subtitle-1 text-grey-darken-1">{{ formatDate(new Date()) }}</p>
+          <h1 class="text-h4 font-weight-bold">Active Deliveries</h1>
+          <p class="text-subtitle-1 text-grey-darken-1">{{ formatDate(new Date()) }} - Showing today and upcoming deliveries</p>
         </v-col>
       </v-row>
 
@@ -160,7 +160,8 @@
       <v-row v-else>
         <v-col cols="12" class="text-center py-16">
           <v-icon size="64" color="grey">mdi-truck-check</v-icon>
-          <p class="text-h6 mt-4">No deliveries scheduled for today</p>
+          <p class="text-h6 mt-4">No active deliveries</p>
+          <p class="text-caption text-grey">All deliveries are completed or no orders pending</p>
         </v-col>
       </v-row>
     </v-container>

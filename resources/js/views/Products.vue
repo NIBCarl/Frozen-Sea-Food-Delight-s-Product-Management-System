@@ -67,12 +67,32 @@
       >
         <template v-slot:item.primary_image="{ item }">
           <v-avatar size="40" class="ma-2">
-            <v-img :src="item.primary_image?.thumbnail_url || 'https://via.placeholder.com/80x80?text=No+Image'" alt="Product Image"></v-img>
+            <v-img :src="item.primaryImage?.thumbnail_url || item.primary_image?.thumbnail_url || 'https://via.placeholder.com/80x80?text=No+Image'" alt="Product Image"></v-img>
           </v-avatar>
         </template>
 
         <template v-slot:item.price="{ item }">
           <span>₱{{ parseFloat(item.price).toFixed(2) }}</span>
+        </template>
+
+        <template v-slot:item.fish_type="{ item }">
+          <span>{{ item.fish_type || '-' }}</span>
+        </template>
+
+        <template v-slot:item.freshness="{ item }">
+          <div v-if="item.expiration_date">
+            <v-chip 
+              :color="getFreshnessColor(item)" 
+              size="small"
+              class="mb-1"
+            >
+              {{ getFreshnessStatus(item) }}
+            </v-chip>
+            <div v-if="item.freshness_grade" class="text-caption">
+              Grade: <v-chip :color="getGradeColor(item.freshness_grade)" size="x-small">{{ item.freshness_grade }}</v-chip>
+            </div>
+          </div>
+          <span v-else class="text-grey">-</span>
         </template>
 
         <template v-slot:item.status="{ item }">
@@ -94,7 +114,7 @@
                 <v-card-text>
                   <div class="d-flex align-center mb-2">
                     <v-avatar size="40" class="me-3">
-                      <v-img :src="item.primary_image?.thumbnail_url || 'https://via.placeholder.com/80x80?text=No+Image'" alt="Product Image"></v-img>
+                      <v-img :src="item.primaryImage?.thumbnail_url || item.primary_image?.thumbnail_url || 'https://via.placeholder.com/80x80?text=No+Image'" alt="Product Image"></v-img>
                     </v-avatar>
                     <div class="flex-grow-1">
                       <div class="font-weight-bold">{{ item.name }}</div>
@@ -109,17 +129,23 @@
                     <span class="text-body-2">Category:</span>
                     <span>{{ item.category?.name }}</span>
                   </div>
-                  <div class="d-flex justify-space-between align-center mb-1">
-                    <span class="text-body-2">Supplier:</span>
-                    <span>{{ item.creator?.name }}</span>
+                  <div v-if="item.fish_type" class="d-flex justify-space-between align-center mb-1">
+                    <span class="text-body-2">Fish Type:</span>
+                    <span>{{ item.fish_type }}</span>
                   </div>
                   <div class="d-flex justify-space-between align-center mb-1">
                     <span class="text-body-2">Price:</span>
                     <span class="font-weight-bold">₱{{ parseFloat(item.price).toFixed(2) }}</span>
                   </div>
-                  <div class="d-flex justify-space-between align-center mb-3">
+                  <div class="d-flex justify-space-between align-center mb-1">
                     <span class="text-body-2">Stock:</span>
                     <span>{{ item.stock_quantity }}</span>
+                  </div>
+                  <div v-if="item.expiration_date" class="d-flex justify-space-between align-center mb-3">
+                    <span class="text-body-2">Freshness:</span>
+                    <v-chip :color="getFreshnessColor(item)" size="small">
+                      {{ getFreshnessStatus(item) }}
+                    </v-chip>
                   </div>
                   
                   <div class="d-flex justify-end">
@@ -137,8 +163,8 @@
     </v-card>
 
     <!-- Product Form Dialog -->
-    <v-dialog v-model="dialog" max-width="800px" persistent>
-      <ProductForm 
+    <v-dialog v-model="dialog" max-width="900px" persistent scrollable>
+      <ProductFormDialog 
         :product-id="editedItem.id"
         @close="closeDialog"
         @save="onProductSave"
@@ -164,7 +190,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useProductStore } from '@/stores/products';
-import ProductForm from '@/components/products/ProductForm.vue';
+import ProductFormDialog from './products/ProductFormDialog.vue';
 
 const productStore = useProductStore();
 
@@ -177,10 +203,11 @@ const headers = [
   { title: 'Image', key: 'primary_image', sortable: false },
   { title: 'Product ID', key: 'product_id', align: 'start' },
   { title: 'Name', key: 'name' },
+  { title: 'Fish Type', key: 'fish_type' },
   { title: 'Category', key: 'category.name' },
-  { title: 'Supplier', key: 'creator.name' },
   { title: 'Price', key: 'price' },
   { title: 'Stock', key: 'stock_quantity' },
+  { title: 'Freshness', key: 'freshness', sortable: false },
   { title: 'Status', key: 'status' },
   { title: 'Actions', key: 'actions', sortable: false },
 ];
@@ -245,6 +272,43 @@ const getStatusColor = (status) => {
     case 'active': return 'green';
     case 'inactive': return 'orange';
     case 'discontinued': return 'red';
+    default: return 'grey';
+  }
+};
+
+const getDaysUntilExpiry = (expirationDate) => {
+  if (!expirationDate) return null;
+  const expiry = new Date(expirationDate);
+  const today = new Date();
+  const diffTime = expiry - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+const getFreshnessStatus = (item) => {
+  const days = getDaysUntilExpiry(item.expiration_date);
+  if (days === null) return 'N/A';
+  if (days < 0) return 'Expired';
+  if (days === 0) return 'Expires Today';
+  if (days <= 3) return `${days}d left`;
+  if (days <= 7) return `${days} days`;
+  return 'Fresh';
+};
+
+const getFreshnessColor = (item) => {
+  const days = getDaysUntilExpiry(item.expiration_date);
+  if (days === null) return 'grey';
+  if (days < 0) return 'red';
+  if (days <= 3) return 'orange';
+  if (days <= 7) return 'yellow';
+  return 'green';
+};
+
+const getGradeColor = (grade) => {
+  switch (grade) {
+    case 'A': return 'success';
+    case 'B': return 'warning';
+    case 'C': return 'error';
     default: return 'grey';
   }
 };

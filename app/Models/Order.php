@@ -28,10 +28,13 @@ class Order extends Model
         'payment_verified_at',
         'payment_verified_by',
         'notes',
+        'shipping_zone_id',
+        'shipping_cost',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
         'preferred_delivery_date' => 'datetime',
         'actual_delivery_date' => 'datetime',
         'payment_verified_at' => 'datetime',
@@ -86,6 +89,14 @@ class Order extends Model
     public function paymentVerifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'payment_verified_by');
+    }
+
+    /**
+     * Get the shipping zone for this order
+     */
+    public function shippingZone(): BelongsTo
+    {
+        return $this->belongsTo(ShippingZone::class);
     }
 
     /**
