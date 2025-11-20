@@ -41,7 +41,7 @@ class DeliveryController extends Controller
     }
 
     /**
-     * Create a new delivery schedule (Admin only)
+     * Create or update a delivery schedule (Admin only)
      */
     public function store(Request $request)
     {
@@ -64,7 +64,16 @@ class DeliveryController extends Controller
         }
 
         try {
-            $delivery = Delivery::create($request->all());
+            // Update or create delivery record (handles both new and existing deliveries)
+            $delivery = Delivery::updateOrCreate(
+                ['order_id' => $request->order_id],
+                [
+                    'delivery_personnel_id' => $request->delivery_personnel_id,
+                    'scheduled_date' => $request->scheduled_date,
+                    'delivery_notes' => $request->delivery_notes,
+                    'status' => 'scheduled',
+                ]
+            );
 
             // Update order status to in_transit
             Order::find($request->order_id)->update(['status' => 'in_transit']);
@@ -73,13 +82,13 @@ class DeliveryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Delivery scheduled successfully',
+                'message' => 'Delivery assigned successfully',
                 'data' => $delivery
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create delivery',
+                'message' => 'Failed to assign delivery',
                 'error' => $e->getMessage()
             ], 500);
         }
