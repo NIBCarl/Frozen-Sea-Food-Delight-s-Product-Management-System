@@ -555,7 +555,9 @@ const uploadImages = async (productId) => {
     }
   } catch (error) {
     console.error('Image upload error:', error)
-    showSnackbar('Error uploading images', 'error')
+    const errorMsg = error.response?.data?.message || error.response?.data?.errors?.image?.[0] || 'Error uploading images'
+    showSnackbar(errorMsg, 'error')
+    throw error
   } finally {
     uploading.value = false
     uploadProgress.value = 0
@@ -610,12 +612,22 @@ const save = async () => {
     
     // Upload images if any are selected
     if (selectedFiles.value && selectedFiles.value.length > 0) {
-      await uploadImages(productId)
+      try {
+        await uploadImages(productId)
+        // Refetch the product to get updated images in the store
+        await productStore.fetchProduct(productId)
+      } catch (imageError) {
+        console.error('Image upload failed, but product was saved:', imageError)
+        // Don't close dialog - let user retry image upload
+        loading.value = false
+        return
+      }
     }
     
     emit('save')
     emit('close')
   } catch (error) {
+    console.error('Product save error:', error)
     showSnackbar(error.response?.data?.message || 'Failed to save product', 'error')
   } finally {
     loading.value = false

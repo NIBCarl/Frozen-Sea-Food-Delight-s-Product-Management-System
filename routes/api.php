@@ -35,6 +35,26 @@ Route::prefix('v1')->group(function () {
         }
     });
     
+    // Public API Routes (no authentication required)
+    Route::prefix('public')->group(function () {
+        // Public product browsing - only shows active and available products
+        Route::get('products', [App\Http\Controllers\Api\PublicProductController::class, 'index']);
+        Route::get('products/{id}', [App\Http\Controllers\Api\PublicProductController::class, 'show']);
+        Route::get('categories', [App\Http\Controllers\Api\PublicProductController::class, 'categories']);
+        Route::get('featured', [App\Http\Controllers\Api\PublicProductController::class, 'featured']);
+        Route::get('stats', [App\Http\Controllers\Api\PublicProductController::class, 'stats']);
+        
+        // Test endpoint to verify API is working
+        Route::get('test', function() {
+            return response()->json([
+                'message' => 'Public API is working!',
+                'timestamp' => now(),
+                'products_count' => \App\Models\Product::where('is_available', true)
+                    ->where('status', 'active')->count()
+            ]);
+        });
+    });
+    
     // Authentication Routes
     Route::prefix('auth')->group(function () {
         Route::post('login', [App\Http\Controllers\Api\AuthController::class, 'login']);

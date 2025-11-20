@@ -14,7 +14,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'primaryImage', 'creator'])
+        $query = Product::with(['category', 'primaryImage', 'images', 'creator'])
             ->orderBy('created_at', 'desc');
 
         // Suppliers can only see their own products
@@ -249,19 +249,26 @@ class ProductController extends Controller
         $single = $request->hasFile('image');
 
         $rules = $single ? [
-            'image' => 'required|image|max:2048',
+            'image' => 'required|file|mimes:jpeg,jpg,png,gif,webp|max:5120',
             'alt_text' => 'nullable|string|max:255',
         ] : [
             'images' => 'required|array',
-            'images.*' => 'image|max:2048',
+            'images.*' => 'file|mimes:jpeg,jpg,png,gif,webp|max:5120',
             'alt_text' => 'nullable|string|max:255',
         ];
 
         $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
+            \Log::error('Image upload validation failed', [
+                'errors' => $validator->errors(),
+                'request_files' => $request->allFiles(),
+                'has_image' => $request->hasFile('image'),
+                'has_images' => $request->hasFile('images')
+            ]);
+            
             return response()->json([
-                'message' => 'Validation error',
+                'message' => 'Image validation failed: ' . $validator->errors()->first(),
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -269,15 +276,26 @@ class ProductController extends Controller
         $files = $single ? [$request->file('image')] : $request->file('images');
         $images = [];
 
-        foreach ($files as $file) {
-            $path = $file->store('products', 'public');
-            $productImage = $product->images()->create([
-                'image_path' => $path,
-                'alt_text' => $request->alt_text,
-                'sort_order' => $product->images()->count(),
-                'is_primary' => $product->images()->count() === 0,
+        try {
+            foreach ($files as $file) {
+                $path = $file->store('products', 'public');
+                $productImage = $product->images()->create([
+                    'image_path' => $path,
+                    'alt_text' => $request->alt_text,
+                    'sort_order' => $product->images()->count(),
+                    'is_primary' => $product->images()->count() === 0,
+                ]);
+                $images[] = $productImage;
+            }
+        } catch (\Exception $e) {
+            \Log::error('Image storage failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-            $images[] = $productImage;
+            
+            return response()->json([
+                'message' => 'Failed to store image: ' . $e->getMessage(),
+            ], 500);
         }
 
         return response()->json([

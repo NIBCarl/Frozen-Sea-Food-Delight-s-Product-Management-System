@@ -137,6 +137,7 @@ class CartController extends Controller
             ], 422);
         }
 
+        $user = Auth::user();
         $product = Product::find($productId);
 
         if (!$product) {
@@ -155,14 +156,30 @@ class CartController extends Controller
             ], 400);
         }
 
-        // Update cart
-        $cart = session()->get('cart', []);
-        $cart[$productId] = $request->quantity;
-        session()->put('cart', $cart);
+        // Find and update cart item in database
+        $cartItem = Cart::where('user_id', $user->id)
+            ->where('product_id', $productId)
+            ->first();
+
+        if (!$cartItem) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cart item not found'
+            ], 404);
+        }
+
+        $cartItem->update([
+            'quantity' => $request->quantity,
+            'price_at_time' => $product->price // Update to current price
+        ]);
+
+        // Get updated cart count
+        $cartCount = Cart::where('user_id', $user->id)->sum('quantity');
 
         return response()->json([
             'success' => true,
-            'message' => 'Cart updated'
+            'message' => 'Cart updated',
+            'cart_count' => $cartCount
         ]);
     }
 
@@ -171,17 +188,24 @@ class CartController extends Controller
      */
     public function removeItem($productId)
     {
-        $cart = session()->get('cart', []);
+        $user = Auth::user();
         
-        if (isset($cart[$productId])) {
-            unset($cart[$productId]);
-            session()->put('cart', $cart);
+        // Find and delete cart item from database
+        $cartItem = Cart::where('user_id', $user->id)
+            ->where('product_id', $productId)
+            ->first();
+        
+        if ($cartItem) {
+            $cartItem->delete();
         }
+
+        // Get updated cart count
+        $cartCount = Cart::where('user_id', $user->id)->sum('quantity');
 
         return response()->json([
             'success' => true,
             'message' => 'Item removed from cart',
-            'cart_count' => count($cart)
+            'cart_count' => $cartCount
         ]);
     }
 

@@ -51,6 +51,13 @@ export const useProductStore = defineStore('products', {
       try {
         const response = await axios.get(`/api/v1/products/${id}`);
         this.product = response.data;
+        
+        // Also update the product in the products array if it exists
+        const index = this.products.findIndex(p => p.id === id);
+        if (index !== -1) {
+          this.products[index] = response.data;
+        }
+        
         return response.data;
       } catch (error) {
         throw error;

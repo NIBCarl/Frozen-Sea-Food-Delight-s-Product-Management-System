@@ -435,8 +435,8 @@ const handleSave = async () => {
 const loadProducts = async () => {
   loading.value = true
   try {
-    // Fetch supplier's products only
-    await productStore.fetchProducts()
+    // Fetch supplier's products only (include all statuses)
+    await productStore.fetchProducts({ include_inactive: true })
   } catch (error) {
     console.error('Failed to load products:', error)
     snackbar.value = {
