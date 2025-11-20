@@ -187,6 +187,186 @@
       </v-card>
     </v-container>
 
+    <!-- Order Details Dialog -->
+    <v-dialog v-model="orderDetailsDialog" max-width="800" scrollable>
+      <v-card v-if="selectedOrderDetails">
+        <v-card-title class="d-flex justify-space-between align-center">
+          <span>Order Details - #{{ selectedOrderDetails.order_number }}</span>
+          <v-chip :color="getStatusColor(selectedOrderDetails.status)" size="small">
+            {{ getStatusText(selectedOrderDetails.status) }}
+          </v-chip>
+        </v-card-title>
+        
+        <v-divider></v-divider>
+        
+        <v-card-text style="max-height: 600px;">
+          <!-- Customer Information -->
+          <div class="mb-4">
+            <h3 class="text-h6 mb-2">Customer Information</h3>
+            <v-row>
+              <v-col cols="6">
+                <div class="text-caption text-grey">Customer Name</div>
+                <div class="font-weight-medium">{{ selectedOrderDetails.customer?.name }}</div>
+              </v-col>
+              <v-col cols="6">
+                <div class="text-caption text-grey">Contact Number</div>
+                <div class="font-weight-medium">{{ selectedOrderDetails.contact_number }}</div>
+              </v-col>
+              <v-col cols="12">
+                <div class="text-caption text-grey">Delivery Address</div>
+                <div class="font-weight-medium">{{ selectedOrderDetails.delivery_address }}</div>
+              </v-col>
+            </v-row>
+          </div>
+
+          <v-divider class="my-4"></v-divider>
+
+          <!-- Shipping Information -->
+          <div class="mb-4" v-if="selectedOrderDetails.shipping_zone">
+            <h3 class="text-h6 mb-2">Shipping Information</h3>
+            <v-row>
+              <v-col cols="6">
+                <div class="text-caption text-grey">Shipping Zone</div>
+                <div class="font-weight-medium">{{ selectedOrderDetails.shipping_zone.name }}</div>
+                <div class="text-caption">{{ selectedOrderDetails.shipping_zone.province }}, {{ selectedOrderDetails.shipping_zone.region }}</div>
+              </v-col>
+              <v-col cols="6">
+                <div class="text-caption text-grey">Shipping Cost</div>
+                <div class="font-weight-medium">₱{{ selectedOrderDetails.shipping_cost }}</div>
+                <v-chip v-if="selectedOrderDetails.shipping_zone.requires_sea_transport" size="x-small" color="info" class="mt-1">
+                  <v-icon start size="12">mdi-ferry</v-icon>
+                  Sea Transport
+                </v-chip>
+              </v-col>
+              <v-col cols="12" v-if="selectedOrderDetails.shipping_zone.delivery_notes">
+                <div class="text-caption text-grey">Delivery Notes</div>
+                <div class="text-body-2">{{ selectedOrderDetails.shipping_zone.delivery_notes }}</div>
+              </v-col>
+              <v-col cols="6">
+                <div class="text-caption text-grey">Estimated Delivery</div>
+                <div class="font-weight-medium">{{ selectedOrderDetails.shipping_zone.estimated_delivery_days }} day(s)</div>
+              </v-col>
+              <v-col cols="6" v-if="selectedOrderDetails.preferred_delivery_date">
+                <div class="text-caption text-grey">Preferred Delivery Date</div>
+                <div class="font-weight-medium">{{ new Date(selectedOrderDetails.preferred_delivery_date).toLocaleDateString() }}</div>
+              </v-col>
+            </v-row>
+          </div>
+
+          <v-divider class="my-4"></v-divider>
+
+          <!-- Order Items -->
+          <div class="mb-4">
+            <h3 class="text-h6 mb-2">Order Items</h3>
+            <v-list density="compact">
+              <v-list-item v-for="item in selectedOrderDetails.items" :key="item.id">
+                <template v-slot:prepend>
+                  <v-avatar size="60" rounded>
+                    <v-img 
+                      :src="item.product?.images?.[0]?.image_url || '/placeholder.png'" 
+                      cover
+                    ></v-img>
+                  </v-avatar>
+                </template>
+                <v-list-item-title>{{ item.product?.name }}</v-list-item-title>
+                <v-list-item-subtitle>
+                  Quantity: {{ item.quantity }} × ₱{{ item.price }}
+                </v-list-item-subtitle>
+                <template v-slot:append>
+                  <div class="font-weight-bold">₱{{ (item.quantity * item.price).toFixed(2) }}</div>
+                </template>
+              </v-list-item>
+            </v-list>
+          </div>
+
+          <v-divider class="my-4"></v-divider>
+
+          <!-- Payment Information -->
+          <div class="mb-4">
+            <h3 class="text-h6 mb-2">Payment Information</h3>
+            <v-row>
+              <v-col cols="6">
+                <div class="text-caption text-grey">Payment Method</div>
+                <v-chip :color="selectedOrderDetails.payment_method === 'gcash' ? 'primary' : 'secondary'" size="small">
+                  {{ selectedOrderDetails.payment_method === 'gcash' ? 'GCash' : 'Cash on Delivery' }}
+                </v-chip>
+              </v-col>
+              <v-col cols="6">
+                <div class="text-caption text-grey">Payment Status</div>
+                <v-chip :color="getPaymentStatusColor(selectedOrderDetails.payment_status)" size="small">
+                  {{ getPaymentStatusText(selectedOrderDetails.payment_status) }}
+                </v-chip>
+              </v-col>
+              <v-col cols="12" v-if="selectedOrderDetails.payment_receipt_path">
+                <v-btn 
+                  size="small" 
+                  color="primary" 
+                  variant="outlined" 
+                  prepend-icon="mdi-receipt"
+                  @click="viewReceipt(selectedOrderDetails)"
+                >
+                  View Payment Receipt
+                </v-btn>
+              </v-col>
+            </v-row>
+          </div>
+
+          <v-divider class="my-4"></v-divider>
+
+          <!-- Order Summary -->
+          <div class="mb-4">
+            <h3 class="text-h6 mb-2">Order Summary</h3>
+            <v-row>
+              <v-col cols="8" class="text-right">
+                <div>Subtotal:</div>
+                <div>Shipping Cost:</div>
+                <div class="text-h6 font-weight-bold mt-2">Total Amount:</div>
+              </v-col>
+              <v-col cols="4" class="text-right">
+                <div>₱{{ (selectedOrderDetails.total_amount - selectedOrderDetails.shipping_cost).toFixed(2) }}</div>
+                <div>₱{{ selectedOrderDetails.shipping_cost }}</div>
+                <div class="text-h6 font-weight-bold mt-2">₱{{ selectedOrderDetails.total_amount }}</div>
+              </v-col>
+            </v-row>
+          </div>
+
+          <!-- Delivery Information -->
+          <div class="mb-4" v-if="selectedOrderDetails.delivery">
+            <v-divider class="my-4"></v-divider>
+            <h3 class="text-h6 mb-2">Delivery Information</h3>
+            <v-row>
+              <v-col cols="6">
+                <div class="text-caption text-grey">Delivery Personnel</div>
+                <div class="font-weight-medium">{{ selectedOrderDetails.delivery.delivery_personnel?.name }}</div>
+              </v-col>
+              <v-col cols="6">
+                <div class="text-caption text-grey">Scheduled Date</div>
+                <div class="font-weight-medium">{{ new Date(selectedOrderDetails.delivery.scheduled_date).toLocaleString() }}</div>
+              </v-col>
+              <v-col cols="12" v-if="selectedOrderDetails.delivery.delivery_notes">
+                <div class="text-caption text-grey">Delivery Notes</div>
+                <div class="text-body-2">{{ selectedOrderDetails.delivery.delivery_notes }}</div>
+              </v-col>
+            </v-row>
+          </div>
+
+          <!-- Notes -->
+          <div v-if="selectedOrderDetails.notes">
+            <v-divider class="my-4"></v-divider>
+            <h3 class="text-h6 mb-2">Order Notes</h3>
+            <p class="text-body-2">{{ selectedOrderDetails.notes }}</p>
+          </div>
+        </v-card-text>
+        
+        <v-divider></v-divider>
+        
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="orderDetailsDialog = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Assign Delivery Dialog -->
     <v-dialog v-model="deliveryDialog" max-width="600">
       <v-card>
@@ -247,6 +427,8 @@ const userStore = useUserStore()
 
 const selectedStatus = ref('all')
 const selectedRegion = ref(null)
+const orderDetailsDialog = ref(false)
+const selectedOrderDetails = ref(null)
 const deliveryDialog = ref(false)
 const deliveryForm = ref(null)
 const deliveryFormValid = ref(false)
@@ -350,9 +532,19 @@ const getPaymentStatusText = (status) => {
   }
 }
 
-const viewOrder = (order) => {
-  // Navigate to order details
-  console.log('View order:', order)
+const viewOrder = async (order) => {
+  try {
+    // Fetch full order details with all relationships
+    const fullOrder = await orderStore.fetchOrder(order.id)
+    selectedOrderDetails.value = fullOrder
+    orderDetailsDialog.value = true
+  } catch (error) {
+    snackbar.value = {
+      show: true,
+      message: 'Failed to load order details',
+      color: 'error'
+    }
+  }
 }
 
 const updateOrderStatus = async (order, status) => {
