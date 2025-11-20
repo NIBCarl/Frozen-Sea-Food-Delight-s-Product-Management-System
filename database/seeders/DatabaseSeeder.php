@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             SampleUsersSeeder::class,
             SampleDataSeeder::class,
             SampleOrderSeeder::class,
+            CebuSurigaoShippingZonesSeeder::class,
         ]);
 
         // Ensure a simple test user exists as well
