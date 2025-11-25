@@ -314,16 +314,21 @@ class OrderController extends Controller
 
             // Restore stock for each item
             foreach ($order->items as $item) {
-                $item->product->increment('stock_quantity', $item->quantity);
+                // Get product even if it was soft deleted
+                $product = Product::withTrashed()->find($item->product_id);
 
-                // Log stock movement
-                StockMovement::create([
-                    'product_id' => $item->product_id,
-                    'type' => 'in',
-                    'quantity' => $item->quantity,
-                    'reference' => "ORDER-CANCELLED-{$order->order_number}",
-                    'created_by' => $request->user()->id,
-                ]);
+                if ($product) {
+                    $product->increment('stock_quantity', $item->quantity);
+
+                    // Log stock movement
+                    StockMovement::create([
+                        'product_id' => $item->product_id,
+                        'type' => 'in',
+                        'quantity' => $item->quantity,
+                        'reference' => "ORDER-CANCELLED-{$order->order_number}",
+                        'created_by' => $request->user()->id,
+                    ]);
+                }
             }
 
             // Update order status

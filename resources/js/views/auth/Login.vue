@@ -256,7 +256,17 @@ const handleLogin = async () => {
       }
     }, 500); // Reduced delay for faster redirect
   } catch (error) {
-    showSnackbar(error.response?.data?.message || 'Invalid credentials', 'error');
+    if (error.response?.status === 403 && error.response?.data?.requires_otp) {
+      showSnackbar('Phone verification required. Redirecting...', 'warning');
+      setTimeout(() => {
+        router.push({
+          path: '/verify-otp',
+          query: { email: error.response.data.email || form.email }
+        });
+      }, 1000);
+    } else {
+      showSnackbar(error.response?.data?.message || 'Invalid credentials', 'error');
+    }
   } finally {
     loading.value = false;
   }

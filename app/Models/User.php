@@ -31,6 +31,8 @@ class User extends Authenticatable
         'preferences',
         'contact_number',
         'delivery_address',
+        'otp_code',
+        'otp_expires_at',
     ];
 
     /**
@@ -41,6 +43,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'otp_code',
+        'otp_expires_at',
     ];
 
     /**
@@ -55,6 +59,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'status' => UserStatus::class,
             'preferences' => 'array',
+            'otp_expires_at' => 'datetime',
         ];
     }
 

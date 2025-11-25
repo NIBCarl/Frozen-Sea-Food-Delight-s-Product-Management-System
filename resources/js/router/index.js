@@ -20,6 +20,12 @@ const routes = [
     meta: { guest: true },
   },
   {
+    path: '/verify-otp',
+    name: 'VerifyOtp',
+    component: () => import('../views/auth/VerifyOtp.vue'),
+    meta: { guest: true },
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     // Do not hard-redirect here to avoid loops; guard below will route by role

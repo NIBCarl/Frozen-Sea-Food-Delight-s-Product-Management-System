@@ -19,6 +19,24 @@
 
             <!-- Form Section -->
             <div class="register-form-wrapper">
+              <v-alert
+                v-if="formError"
+                type="error"
+                variant="flat"
+                closable
+                prominent
+                class="mb-4 error-alert"
+                @click:close="formError = ''"
+              >
+                <template v-slot:prepend>
+                  <v-icon size="24">mdi-alert-circle</v-icon>
+                </template>
+                <div class="alert-content">
+                  <strong>Registration Error</strong>
+                  <div>{{ formError }}</div>
+                </div>
+              </v-alert>
+
               <v-form @submit.prevent="handleRegister" ref="formRef">
                 <!-- Name and Username Row -->
                 <div class="form-row">
@@ -30,6 +48,7 @@
                         v-model="form.name"
                         type="text"
                         class="form-input"
+                        :class="{ 'input-error': errors.name }"
                         placeholder="John Doe"
                         required
                       />
@@ -45,12 +64,30 @@
                         v-model="form.username"
                         type="text"
                         class="form-input"
+                        :class="{ 'input-error': errors.username }"
                         placeholder="johndoe"
                         required
                       />
                     </div>
                     <span v-if="errors.username" class="error-text">{{ errors.username }}</span>
                   </div>
+                </div>
+
+                <!-- Contact Number -->
+                <div class="form-group">
+                  <label class="form-label">Phone Number</label>
+                  <div class="input-wrapper">
+                    <v-icon class="input-icon" size="20">mdi-phone-outline</v-icon>
+                    <input
+                      v-model="form.contact_number"
+                      type="tel"
+                      class="form-input"
+                      :class="{ 'input-error': errors.contact_number }"
+                      placeholder="09123456789"
+                      required
+                    />
+                  </div>
+                  <span v-if="errors.contact_number" class="error-text">{{ errors.contact_number }}</span>
                 </div>
 
                 <!-- Email Input -->
@@ -62,6 +99,7 @@
                       v-model="form.email"
                       type="email"
                       class="form-input"
+                      :class="{ 'input-error': errors.email }"
                       placeholder="john@example.com"
                       required
                     />
@@ -78,6 +116,7 @@
                       v-model="form.password"
                       :type="showPassword ? 'text' : 'password'"
                       class="form-input"
+                      :class="{ 'input-error': errors.password }"
                       placeholder="At least 8 characters"
                       required
                     />
@@ -104,6 +143,7 @@
                       v-model="form.password_confirmation"
                       :type="showPassword ? 'text' : 'password'"
                       class="form-input"
+                      :class="{ 'input-error': errors.password_confirmation }"
                       placeholder="Re-enter your password"
                       required
                     />
@@ -198,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, nextTick } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 
@@ -209,6 +249,7 @@ const formRef = ref(null);
 const form = reactive({
   name: '',
   username: '',
+  contact_number: '',
   email: '',
   password: '',
   password_confirmation: '',
@@ -218,6 +259,7 @@ const form = reactive({
 const errors = reactive({
   name: '',
   username: '',
+  contact_number: '',
   email: '',
   password: '',
   password_confirmation: '',
@@ -225,6 +267,7 @@ const errors = reactive({
 
 const showPassword = ref(false);
 const loading = ref(false);
+const formError = ref('');
 const snackbar = reactive({
   show: false,
   message: '',
@@ -241,6 +284,7 @@ const validateForm = () => {
   // Reset errors
   errors.name = '';
   errors.username = '';
+  errors.contact_number = '';
   errors.email = '';
   errors.password = '';
   errors.password_confirmation = '';
@@ -257,6 +301,14 @@ const validateForm = () => {
     isValid = false;
   } else if (form.username.length < 3) {
     errors.username = 'Username must be at least 3 characters';
+    isValid = false;
+  }
+
+  if (!form.contact_number) {
+    errors.contact_number = 'Phone number is required';
+    isValid = false;
+  } else if (!/^(09|\+639)\d{9}$/.test(form.contact_number)) {
+    errors.contact_number = 'Please enter a valid PH mobile number';
     isValid = false;
   }
   
@@ -296,23 +348,46 @@ const handleRegister = async () => {
   if (!validateForm()) return;
   
   loading.value = true;
+  formError.value = '';
   try {
-    await authStore.register(form);
-    showSnackbar('Registration successful! Redirecting to login...', 'success');
-    setTimeout(() => {
-      router.push('/login');
-    }, 1500);
+    const response = await authStore.register(form);
+    if (response.requires_otp) {
+      showSnackbar('Registration successful! Please verify your phone number.', 'success');
+      setTimeout(() => {
+        router.push({ 
+          path: '/verify-otp', 
+          query: { email: form.email } 
+        });
+      }, 1500);
+    } else {
+      showSnackbar('Registration successful! Redirecting to login...', 'success');
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+    }
   } catch (error) {
+    console.error('Registration error:', error);
+    
     if (error.response?.data?.errors) {
       const serverErrors = error.response.data.errors;
+      const errorMessages = [];
+      
+      // Set field-specific errors
       Object.keys(serverErrors).forEach(key => {
-        if (errors.hasOwnProperty(key)) {
-          errors[key] = serverErrors[key][0];
-        }
+        const errorMsg = serverErrors[key][0];
+        if (key === 'name') errors.name = errorMsg;
+        if (key === 'username') errors.username = errorMsg;
+        if (key === 'contact_number') errors.contact_number = errorMsg;
+        if (key === 'email') errors.email = errorMsg;
+        if (key === 'password') errors.password = errorMsg;
+        if (key === 'password_confirmation') errors.password_confirmation = errorMsg;
+        errorMessages.push(errorMsg);
       });
-      showSnackbar('Please check the form for errors', 'error');
+      
+      // Show combined error message in the form alert
+      formError.value = errorMessages.join(' | ');
     } else {
-      showSnackbar(error.response?.data?.message || 'Registration failed', 'error');
+      formError.value = error.response?.data?.message || 'Registration failed. Please try again.';
     }
   } finally {
     loading.value = false;
@@ -482,6 +557,17 @@ const handleRegister = async () => {
     0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
+.form-input.input-error {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.form-input.input-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
 .form-input::placeholder {
   color: #9ca3af;
 }
@@ -508,10 +594,34 @@ const handleRegister = async () => {
 
 .error-text {
   display: block;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: #dc2626;
-  margin-top: 0.375rem;
-  font-weight: 500;
+  margin-top: 0.5rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  background-color: #fef2f2;
+  border-left: 3px solid #dc2626;
+  border-radius: 4px;
+}
+
+.error-alert {
+  border-radius: 12px !important;
+  animation: shake 0.5s ease-in-out;
+}
+
+.error-alert .alert-content {
+  margin-left: 0.5rem;
+}
+
+.error-alert .alert-content strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
 }
 
 .terms-wrapper {
