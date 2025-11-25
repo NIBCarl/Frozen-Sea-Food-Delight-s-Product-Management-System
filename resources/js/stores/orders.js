@@ -114,9 +114,16 @@ export const useOrderStore = defineStore('orders', {
       
       try {
         await axios.delete(`/api/v1/orders/${orderId}`)
-        this.orders = this.orders.filter(o => o.id !== orderId)
+        
+        // Update status in local list instead of removing
+        const index = this.orders.findIndex(o => o.id === orderId)
+        if (index !== -1) {
+          this.orders[index] = { ...this.orders[index], status: 'cancelled' }
+        }
+
+        // Update current order if it's the one being cancelled
         if (this.currentOrder?.id === orderId) {
-          this.currentOrder = null
+          this.currentOrder = { ...this.currentOrder, status: 'cancelled' }
         }
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to cancel order'

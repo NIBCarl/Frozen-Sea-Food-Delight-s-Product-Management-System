@@ -30,6 +30,7 @@
             <v-chip value="processing" filter>Processing</v-chip>
             <v-chip value="in_transit" filter>In Transit</v-chip>
             <v-chip value="delivered" filter>Delivered</v-chip>
+            <v-chip value="cancelled" filter>Cancelled</v-chip>
           </v-chip-group>
         </v-col>
       </v-row>
