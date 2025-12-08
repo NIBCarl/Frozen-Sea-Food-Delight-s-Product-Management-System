@@ -1,0 +1,21 @@
+User found: Pedro Delivery (ID: 7)
+Total Deliveries Assigned: 11
+ - ID: 1 | Status: delivered | Scheduled: 2025-11-26 20:45:00
+ - ID: 2 | Status: delivered | Scheduled: 2025-11-26 20:53:00
+ - ID: 3 | Status: delivered | Scheduled: 2025-11-25 09:55:00
+ - ID: 4 | Status: delivered | Scheduled: 2025-11-25 09:55:00
+ - ID: 5 | Status: delivered | Scheduled: 2025-11-25 09:55:00
+ - ID: 6 | Status: delivered | Scheduled: 2025-11-25 09:56:00
+ - ID: 7 | Status: delivered | Scheduled: 2025-11-26 18:06:00
+ - ID: 11 | Status: delivered | Scheduled: 2025-12-10 00:15:00
+ - ID: 12 | Status: scheduled | Scheduled: 2025-12-09 00:22:07
+ - ID: 13 | Status: scheduled | Scheduled: 2025-12-16 07:00:00
+ - ID: 14 | Status: scheduled | Scheduled: 2026-01-22 22:27:06
+
+Visible in 'Today's Deliveries' page:
+Count: 3
+ - ID: 12 | Status: scheduled | Scheduled: 2025-12-09 00:22:07
+ - ID: 13 | Status: scheduled | Scheduled: 2025-12-16 07:00:00
+ - ID: 14 | Status: scheduled | Scheduled: 2026-01-22 22:27:06
+
+Unassigned Processing Orders: 0

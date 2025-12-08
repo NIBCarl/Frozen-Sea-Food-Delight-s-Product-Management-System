@@ -196,8 +196,8 @@ class DeliveryController extends Controller
         // This is more practical for delivery personnel to prepare ahead
         $deliveries = Delivery::with(['order.customer', 'order.items.product'])
             ->where('delivery_personnel_id', $request->user()->id)
-            ->where('scheduled_date', '>=', today())
-            ->where('scheduled_date', '<=', today()->addDays(7))
+            // ->where('scheduled_date', '>=', today())
+            // ->where('scheduled_date', '<=', today()->addDays(7))
             ->whereIn('status', ['scheduled', 'out_for_delivery', 'in_transit'])
             ->orderBy('scheduled_date', 'asc')
             ->get();
@@ -238,26 +238,25 @@ class DeliveryController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
-        // Get TODAY's deliveries by status for this user
-        $todayDeliveries = Delivery::where('delivery_personnel_id', $request->user()->id)
-            ->whereDate('scheduled_date', today())
-            ->get();
+        // Use distinct counts for accurate statistics across all time/active tasks
+        $stats = Delivery::where('delivery_personnel_id', $request->user()->id)
+            ->selectRaw("count(case when status = 'scheduled' then 1 end) as scheduled")
+            ->selectRaw("count(case when status = 'out_for_delivery' then 1 end) as out_for_delivery")
+            ->selectRaw("count(case when status = 'in_transit' then 1 end) as in_transit")
+            ->selectRaw("count(case when status = 'delivered' then 1 end) as delivered")
+            ->selectRaw("count(case when status = 'failed' then 1 end) as failed")
+            ->selectRaw("count(*) as total")
+            ->first();
 
+        // Prepare response data
         $statistics = [
-            'scheduled' => $todayDeliveries->where('status', 'scheduled')->count(),
-            'out_for_delivery' => $todayDeliveries->where('status', 'out_for_delivery')->count(),
-            'in_transit' => $todayDeliveries->where('status', 'in_transit')->count(),
-            'delivered' => $todayDeliveries->where('status', 'delivered')->count(),
-            'failed' => $todayDeliveries->where('status', 'failed')->count(),
-            'total' => $todayDeliveries->count()
+            'scheduled' => (int)$stats->scheduled,
+            'out_for_delivery' => (int)$stats->out_for_delivery, // 'in_transit' could be added here if needed by frontend
+            'in_transit' => (int)$stats->in_transit,
+            'delivered' => (int)$stats->delivered,
+            'failed' => (int)$stats->failed,
+            'total' => (int)$stats->total
         ];
-
-        // Debug logging
-        \Log::info('Today Delivery Statistics:', [
-            'date' => today()->toDateString(),
-            'total_deliveries' => $todayDeliveries->count(),
-            'statistics' => $statistics
-        ]);
 
         return response()->json([
             'success' => true,
