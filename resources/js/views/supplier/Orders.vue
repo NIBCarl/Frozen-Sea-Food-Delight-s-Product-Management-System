@@ -115,6 +115,20 @@
             </v-chip>
           </template>
 
+          <!-- Delivery Driver -->
+          <template v-slot:item.delivery_driver="{ item }">
+            <div v-if="item.delivery?.delivery_personnel">
+              <div class="font-weight-medium">{{ item.delivery.delivery_personnel.name }}</div>
+              <v-chip :color="getDeliveryStatusColor(item.delivery.status)" size="x-small" class="mt-1">
+                {{ formatDeliveryStatus(item.delivery.status) }}
+              </v-chip>
+            </div>
+            <div v-else class="text-grey-darken-1">
+              <v-icon size="small" class="mr-1">mdi-account-off</v-icon>
+              Not Assigned
+            </div>
+          </template>
+
           <!-- Actions -->
           <template v-slot:item.actions="{ item }">
             <v-menu>
@@ -273,6 +287,7 @@ const headers = [
   { title: 'Your Revenue', key: 'supplier_total' },
   { title: 'Status', key: 'status' },
   { title: 'Payment', key: 'payment_status' },
+  { title: 'Delivery Driver', key: 'delivery_driver', sortable: false },
   { title: 'Actions', key: 'actions', sortable: false }
 ]
 
@@ -316,6 +331,21 @@ const getPaymentStatusText = (status) => {
     case 'verification_failed': return 'FAILED'
     default: return status?.toUpperCase() || 'UNKNOWN'
   }
+}
+
+const getDeliveryStatusColor = (status) => {
+  const colors = {
+    scheduled: 'info',
+    out_for_delivery: 'warning',
+    delivered: 'success',
+    failed: 'error'
+  }
+  return colors[status] || 'grey'
+}
+
+const formatDeliveryStatus = (status) => {
+  if (!status) return 'Pending'
+  return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
 const formatDate = (date) => {

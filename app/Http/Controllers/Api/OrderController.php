@@ -10,6 +10,7 @@ use App\Models\ShippingZone;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class OrderController extends Controller
@@ -21,7 +22,7 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Order::with(['customer', 'items.product', 'delivery', 'shippingZone']);
+        $query = Order::with(['customer', 'items.product', 'delivery.deliveryPersonnel', 'shippingZone']);
 
         // Filter by user role
         if ($request->user()->hasRole('customer')) {
@@ -50,6 +51,8 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
+        Log::info('Order creation started', $request->all());
+
         $validator = Validator::make($request->all(), [
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -72,6 +75,7 @@ class OrderController extends Controller
         }
 
         try {
+            Log::info('Starting DB transaction');
             DB::beginTransaction();
 
             // Calculate total and validate stock
@@ -195,11 +199,25 @@ class OrderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Order creation failed: ' . $e->getMessage());
+            
+            // Check for business logic errors (stock, expiration, availability)
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'expired') || 
+                str_contains($msg, 'Insufficient stock') || 
+                str_contains($msg, 'not available')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $msg,
+                ], 422);
+            }
+
+            Log::error($e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create order',
-                'error' => $e->getMessage()
+                'error' => $msg
             ], 500);
         }
     }
@@ -314,16 +332,21 @@ class OrderController extends Controller
 
             // Restore stock for each item
             foreach ($order->items as $item) {
-                $item->product->increment('stock_quantity', $item->quantity);
+                // Get product even if it was soft deleted
+                $product = Product::withTrashed()->find($item->product_id);
 
-                // Log stock movement
-                StockMovement::create([
-                    'product_id' => $item->product_id,
-                    'type' => 'in',
-                    'quantity' => $item->quantity,
-                    'reference' => "ORDER-CANCELLED-{$order->order_number}",
-                    'created_by' => $request->user()->id,
-                ]);
+                if ($product) {
+                    $product->increment('stock_quantity', $item->quantity);
+
+                    // Log stock movement
+                    StockMovement::create([
+                        'product_id' => $item->product_id,
+                        'type' => 'in',
+                        'quantity' => $item->quantity,
+                        'reference' => "ORDER-CANCELLED-{$order->order_number}",
+                        'created_by' => $request->user()->id,
+                    ]);
+                }
             }
 
             // Update order status

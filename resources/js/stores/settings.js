@@ -195,6 +195,7 @@ export const useSettingsStore = defineStore('settings', {
 
         // Update auth store
         const authStore = useAuthStore();
+        user.roles = normalizeRoles(user.roles);
         authStore.user = user;
 
         return { success: true, message: response.data.message };

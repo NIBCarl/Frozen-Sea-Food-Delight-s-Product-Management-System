@@ -123,6 +123,23 @@
             </v-chip>
           </template>
 
+          <!-- Delivery Driver -->
+          <template v-slot:item.delivery_driver="{ item }">
+            <div v-if="item.delivery?.delivery_personnel">
+              <div class="font-weight-medium">{{ item.delivery.delivery_personnel.name }}</div>
+              <v-chip :color="getDeliveryStatusColor(item.delivery.status)" size="x-small" class="mt-1">
+                {{ formatDeliveryStatus(item.delivery.status) }}
+              </v-chip>
+            </div>
+            <div v-else-if="item.delivery" class="text-warning">
+              <v-icon size="small" class="mr-1">mdi-account-clock</v-icon>
+              <span class="text-caption">Pending Assignment</span>
+            </div>
+            <div v-else class="text-grey-darken-1">
+              <span class="text-caption">-</span>
+            </div>
+          </template>
+
           <!-- Total Amount -->
           <template v-slot:item.total_amount="{ item }">
             <span class="font-weight-bold">₱{{ item.total_amount }}</span>
@@ -460,6 +477,7 @@ const headers = [
   { title: 'Shipping Zone', key: 'shipping_zone' },
   { title: 'Payment', key: 'payment' },
   { title: 'Status', key: 'status' },
+  { title: 'Delivery Driver', key: 'delivery_driver', sortable: false },
   { title: 'Total', key: 'total_amount' },
   { title: 'Date', key: 'created_at' },
   { title: 'Actions', key: 'actions', sortable: false }
@@ -530,6 +548,22 @@ const getPaymentStatusText = (status) => {
     case 'verification_failed': return 'FAILED'
     default: return status?.toUpperCase() || 'UNKNOWN'
   }
+}
+
+const getDeliveryStatusColor = (status) => {
+  const colors = {
+    scheduled: 'info',
+    out_for_delivery: 'warning',
+    in_transit: 'primary',
+    delivered: 'success',
+    failed: 'error'
+  }
+  return colors[status] || 'grey'
+}
+
+const formatDeliveryStatus = (status) => {
+  if (!status) return 'Pending'
+  return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
 const viewOrder = async (order) => {

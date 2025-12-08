@@ -84,21 +84,48 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async register(userData) {
-      this.loading = true;
+      // Note: Don't set this.loading = true here, as it triggers the global loading screen
+      // The Register component has its own local loading state
       try {
-        const { name, username, email, password, password_confirmation } = userData;
+        const { name, username, email, contact_number, password, password_confirmation } = userData;
         const response = await axios.post('/api/v1/auth/register', {
           name,
           username,
           email,
+          contact_number,
           password,
           password_confirmation
         });
         return response.data;
       } catch (error) {
         throw error;
-      } finally {
-        this.loading = false;
+      }
+    },
+
+    async verifyOtp(data) {
+      // Note: Don't set this.loading = true here, as it triggers the global loading screen
+      try {
+        const response = await axios.post('/api/v1/auth/verify-otp', data);
+        this.token = response.data.token;
+        const user = response.data.user;
+        user.roles = normalizeRoles(user.roles);
+        this.user = user;
+        this.isAuthenticated = true;
+        localStorage.setItem('token', this.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    async resendOtp(email) {
+      // Note: Don't set this.loading = true here, as it triggers the global loading screen
+      try {
+        const response = await axios.post('/api/v1/auth/resend-otp', { email });
+        return response.data;
+      } catch (error) {
+        throw error;
       }
     },
 
@@ -171,6 +198,40 @@ export const useAuthStore = defineStore('auth', {
           this.clearAuth();
         }
       }
+    },
+
+    async getGoogleRedirectUrl() {
+      try {
+        const response = await axios.get('/api/v1/auth/google/redirect-url');
+        return response.data.url;
+      } catch (error) {
+        console.error('Failed to get Google redirect URL:', error);
+        throw error;
+      }
+    },
+
+    async redirectToGoogle() {
+      try {
+        const url = await this.getGoogleRedirectUrl();
+        window.location.href = url;
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    async checkOnboardingStatus() {
+      try {
+        const response = await axios.get('/api/v1/onboarding/status');
+        return response.data;
+      } catch (error) {
+        console.error('Failed to check onboarding status:', error);
+        throw error;
+      }
+    },
+
+    needsOnboarding() {
+      if (!this.user) return false;
+      return !this.user.profile_completed || !this.user.username || !this.user.contact_number;
     }
   }
 });

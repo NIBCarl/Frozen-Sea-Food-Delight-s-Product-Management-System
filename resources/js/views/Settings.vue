@@ -91,6 +91,7 @@
                   prepend-icon="mdi-account"
                   variant="outlined"
                   class="mb-3"
+                  :disabled="settingsStore.loading"
                 />
                 
                 <v-text-field
@@ -100,6 +101,7 @@
                   prepend-icon="mdi-account-circle"
                   variant="outlined"
                   class="mb-3"
+                  :disabled="settingsStore.loading"
                 />
                 
                 <v-text-field
@@ -109,6 +111,7 @@
                   prepend-icon="mdi-email"
                   variant="outlined"
                   class="mb-4"
+                  :disabled="settingsStore.loading"
                 />
 
                 <div class="d-flex">
@@ -116,7 +119,7 @@
                     color="primary"
                     type="submit"
                     :loading="settingsStore.updating"
-                    :disabled="!settingsStore.hasUnsavedChanges"
+                    :disabled="!settingsStore.hasUnsavedChanges || settingsStore.loading"
                   >
                     <v-icon>mdi-content-save</v-icon>&nbsp;Save Changes
                   </v-btn>
@@ -385,9 +388,12 @@ const loadData = async () => {
 };
 
 const resetProfileForm = () => {
-  profileForm.name = settingsStore.profile.name;
-  profileForm.username = settingsStore.profile.username;
-  profileForm.email = settingsStore.profile.email;
+  // Ensure we have valid data before resetting
+  const { name, username, email } = settingsStore.profile;
+  
+  profileForm.name = name || '';
+  profileForm.username = username || '';
+  profileForm.email = email || '';
 };
 
 const updateProfile = async () => {
@@ -468,16 +474,26 @@ const showErrorMessage = (message) => {
 
 // Lifecycle
 onMounted(() => {
+  // Initialize with current auth user immediately so fields aren't empty
   settingsStore.initializeFromAuth();
+  resetProfileForm();
+  
+  // Then fetch latest from API
   loadData();
 });
 
-// Watch for auth changes
+// Watch for auth changes - ONLY update if we haven't dirtied the form
+// or if it's the first load. 
+// Actually, we should avoid overwriting user input.
+// Let's remove the watcher that might be interfering, or make it smarter.
+// Since loadData fetches fresh data, we might not need this watcher for the form itself.
+/*
 watch(() => authStore.user, (newUser) => {
   if (newUser) {
     settingsStore.initializeFromAuth();
   }
 });
+*/
 </script>
 
 <style scoped>

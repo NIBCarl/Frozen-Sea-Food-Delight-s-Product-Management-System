@@ -24,6 +24,7 @@ class SampleUsersSeeder extends Seeder
                 'contact_number' => '09123456789',
                 'delivery_address' => 'Surigao City, Philippines',
                 'status' => 'active',
+                'profile_completed' => true,
             ]
         );
         if (!$admin->hasRole('admin')) {
@@ -40,6 +41,7 @@ class SampleUsersSeeder extends Seeder
                 'contact_number' => '09234567890',
                 'delivery_address' => 'Cebu City, Philippines',
                 'status' => 'active',
+                'profile_completed' => true,
             ]
         );
         if (!$supplier->hasRole('supplier')) {
@@ -56,6 +58,7 @@ class SampleUsersSeeder extends Seeder
                 'contact_number' => '09345678901',
                 'delivery_address' => '123 Main St, Surigao City',
                 'status' => 'active',
+                'profile_completed' => true,
             ]
         );
         if (!$customer1->hasRole('customer')) {
@@ -71,6 +74,7 @@ class SampleUsersSeeder extends Seeder
                 'contact_number' => '09456789012',
                 'delivery_address' => '456 Market St, Surigao City',
                 'status' => 'active',
+                'profile_completed' => true,
             ]
         );
         if (!$customer2->hasRole('customer')) {
@@ -87,6 +91,7 @@ class SampleUsersSeeder extends Seeder
                 'contact_number' => '09567890123',
                 'delivery_address' => 'Surigao City, Philippines',
                 'status' => 'active',
+                'profile_completed' => true,
             ]
         );
         if (!$delivery->hasRole('delivery_personnel')) {

@@ -61,7 +61,7 @@ class ShippingZone extends Model
      */
     public function getEstimatedDeliveryDate()
     {
-        return now()->addDays($this->estimated_delivery_days);
+        return now()->addDays((int) $this->estimated_delivery_days);
     }
 
     /**

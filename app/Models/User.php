@@ -27,10 +27,15 @@ class User extends Authenticatable
         'username',
         'password',
         'avatar',
+        'avatar_url',
         'status',
         'preferences',
         'contact_number',
         'delivery_address',
+        'otp_code',
+        'otp_expires_at',
+        'google_id',
+        'profile_completed',
     ];
 
     /**
@@ -41,6 +46,14 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'otp_code',
+        'otp_expires_at',
+        'google_id',
+    ];
+
+    protected $appends = [
+        'avatar_display_url',
+        'is_google_user',
     ];
 
     /**
@@ -55,6 +68,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'status' => UserStatus::class,
             'preferences' => 'array',
+            'otp_expires_at' => 'datetime',
+            'profile_completed' => 'boolean',
         ];
     }
 
@@ -73,9 +88,37 @@ class User extends Authenticatable
         return $this->status === UserStatus::ACTIVE;
     }
 
-    public function getAvatarUrlAttribute(): string
+    public function getAvatarDisplayUrlAttribute(): string
     {
-        return $this->avatar ? asset('storage/' . $this->avatar) : asset('images/default-avatar.png');
+        // Priority: uploaded avatar > Google avatar > default
+        if ($this->avatar) {
+            return asset('storage/' . $this->avatar);
+        }
+        if ($this->avatar_url) {
+            return $this->avatar_url;
+        }
+        return asset('images/default-avatar.png');
+    }
+
+    public function getIsGoogleUserAttribute(): bool
+    {
+        return !empty($this->google_id);
+    }
+
+    /**
+     * Check if user signed up via Google OAuth
+     */
+    public function isGoogleUser(): bool
+    {
+        return !empty($this->google_id);
+    }
+
+    /**
+     * Check if user needs to complete onboarding
+     */
+    public function needsOnboarding(): bool
+    {
+        return !$this->profile_completed || !$this->username || !$this->contact_number;
     }
 
     /**

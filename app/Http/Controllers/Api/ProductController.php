@@ -25,7 +25,11 @@ class ProductController extends Controller
         // For public endpoints (no include_inactive flag) keep only active & available products
         if (!$request->boolean('include_inactive')) {
             $query->where('is_available', true)
-                  ->where('status', 'active');
+                  ->where('status', 'active')
+                  ->where(function($q) {
+                      $q->whereNull('expiration_date')
+                        ->orWhere('expiration_date', '>', now());
+                  });
         } else {
             // Optional explicit status filter for admins
             if ($request->filled('status')) {

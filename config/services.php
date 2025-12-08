@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
+    'android_sms_gateway' => [
+        'url' => env('ANDROID_SMS_GATEWAY_URL'),
+        'username' => env('ANDROID_SMS_GATEWAY_USERNAME'),
+        'password' => env('ANDROID_SMS_GATEWAY_PASSWORD'),
+        'device_id' => env('ANDROID_SMS_GATEWAY_DEVICE_ID'),
+    ],
 ];
