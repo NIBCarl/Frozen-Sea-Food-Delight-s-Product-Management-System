@@ -433,9 +433,7 @@ const handleGoogleSignUp = async () => {
     googleLoading.value = false;
   }
 };
-    googleLoading.value = false;
-  }
-};
+
 
 const handlePhoneInput = (event) => {
   let value = event.target.value;

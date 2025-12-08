@@ -4,14 +4,14 @@
       <v-row class="mb-4">
         <v-col cols="12">
           <h1 class="text-h4 font-weight-bold">Active Deliveries</h1>
-          <p class="text-subtitle-1 text-grey-darken-1">{{ formatDate(new Date()) }} - Showing today and upcoming deliveries</p>
+          <p class="text-subtitle-1 text-grey-darken-1">{{ formatDate(new Date()) }} - Showing all active and upcoming deliveries</p>
         </v-col>
       </v-row>
 
       <!-- Summary Cards -->
-      <v-row class="mb-4">
+      <v-row class="mb-6">
         <v-col cols="12" md="3">
-          <v-card color="primary" variant="tonal">
+          <v-card color="primary" variant="tonal" class="rounded-lg">
             <v-card-text>
               <div class="text-h3 font-weight-bold">{{ scheduledCount }}</div>
               <div class="text-body-1">Scheduled</div>
@@ -20,7 +20,7 @@
           </v-card>
         </v-col>
         <v-col cols="12" md="3">
-          <v-card color="info" variant="tonal">
+          <v-card color="info" variant="tonal" class="rounded-lg">
             <v-card-text>
               <div class="text-h3 font-weight-bold">{{ outForDeliveryCount }}</div>
               <div class="text-body-1">Out for Delivery</div>
@@ -29,7 +29,7 @@
           </v-card>
         </v-col>
         <v-col cols="12" md="3">
-          <v-card color="success" variant="tonal">
+          <v-card color="success" variant="tonal" class="rounded-lg">
             <v-card-text>
               <div class="text-h3 font-weight-bold">{{ completedCount }}</div>
               <div class="text-body-1">Completed</div>
@@ -38,7 +38,7 @@
           </v-card>
         </v-col>
         <v-col cols="12" md="3">
-          <v-card color="error" variant="tonal">
+          <v-card color="error" variant="tonal" class="rounded-lg">
             <v-card-text>
               <div class="text-h3 font-weight-bold">{{ failedCount }}</div>
               <div class="text-body-1">Failed</div>
@@ -49,139 +49,84 @@
       </v-row>
 
       <!-- Loading -->
-      <v-progress-linear v-if="deliveryStore.loading" indeterminate></v-progress-linear>
-
-      <!-- Deliveries List -->
-      <v-row v-else-if="deliveryStore.todayDeliveries.length > 0">
-        <v-col v-for="delivery in deliveryStore.todayDeliveries" :key="delivery.id" cols="12" md="6">
-          <v-card hover>
-            <v-card-title class="d-flex justify-space-between align-center">
-              <span class="text-h6">Order #{{ delivery.order?.order_number }}</span>
-              <v-chip :color="getStatusColor(delivery.status)" size="small">
-                {{ getStatusText(delivery.status) }}
-              </v-chip>
-            </v-card-title>
-
-            <v-divider></v-divider>
-
-            <v-card-text>
-              <!-- Customer Info -->
-              <div class="mb-3">
-                <div class="text-caption text-grey">Customer</div>
-                <div class="font-weight-medium">{{ delivery.order?.customer?.name }}</div>
-                <div class="text-body-2">{{ delivery.order?.contact_number }}</div>
-              </div>
-
-              <!-- Delivery Address -->
-              <div class="mb-3">
-                <div class="text-caption text-grey">Delivery Address</div>
-                <div class="text-body-2">{{ delivery.order?.delivery_address }}</div>
-              </div>
-
-              <!-- Order Items -->
-              <div class="mb-3">
-                <div class="text-caption text-grey">Items</div>
-                <div v-for="item in delivery.order?.items" :key="item.id" class="text-body-2">
-                  {{ item.quantity }}x {{ item.product?.name }}
-                </div>
-              </div>
-
-              <!-- Scheduled Time -->
-              <div class="mb-3">
-                <div class="text-caption text-grey">Scheduled Time</div>
-                <div class="text-body-2 font-weight-medium">{{ formatDeliveryTime(delivery.scheduled_date) }}</div>
-              </div>
-
-              <!-- Amount -->
-              <div class="mb-3">
-                <div class="text-caption text-grey">Amount to Collect (COD)</div>
-                <div class="text-h6 font-weight-bold">₱{{ delivery.order?.total_amount }}</div>
-              </div>
-
-              <!-- Notes -->
-              <div v-if="delivery.order?.notes">
-                <div class="text-caption text-grey">Customer Notes</div>
-                <v-alert type="info" variant="tonal" density="compact">
-                  {{ delivery.order?.notes }}
-                </v-alert>
-              </div>
-            </v-card-text>
-
-            <v-divider></v-divider>
-
-            <v-card-actions class="pa-4">
-              <v-btn
-                v-if="delivery.status === 'scheduled'"
-                color="primary"
-                prepend-icon="mdi-truck"
-                @click="updateStatus(delivery, 'out_for_delivery')"
-              >
-                Start Delivery
-              </v-btn>
-
-              <v-btn
-                v-if="delivery.status === 'out_for_delivery'"
-                color="success"
-                prepend-icon="mdi-check-circle"
-                @click="openCompleteDialog(delivery)"
-              >
-                Mark as Delivered
-              </v-btn>
-
-              <v-btn
-                v-if="delivery.status === 'out_for_delivery'"
-                color="error"
-                variant="outlined"
-                prepend-icon="mdi-close-circle"
-                @click="openFailedDialog(delivery)"
-              >
-                Mark as Failed
-              </v-btn>
-
-              <v-spacer></v-spacer>
-
-              <v-btn
-                variant="text"
-                icon="mdi-phone"
-                :href="`tel:${delivery.order?.contact_number}`"
-              ></v-btn>
-
-              <v-btn
-                variant="text"
-                icon="mdi-map-marker"
-                @click="openMap(delivery.order?.delivery_address)"
-              ></v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-col>
-      </v-row>
+      <v-progress-linear v-if="deliveryStore.loading" indeterminate color="primary" class="mb-4"></v-progress-linear>
 
       <!-- Empty State -->
-      <v-row v-else>
+      <v-row v-else-if="deliveryStore.todayDeliveries.length === 0">
         <v-col cols="12" class="text-center py-16">
-          <v-icon size="64" color="grey">mdi-truck-check</v-icon>
-          <p class="text-h6 mt-4">No active deliveries</p>
-          <p class="text-caption text-grey">All deliveries are completed or no orders pending</p>
+          <v-icon size="64" color="grey-lighten-1">mdi-truck-check-outline</v-icon>
+          <p class="text-h6 mt-4 text-grey-darken-1">No active deliveries</p>
+          <p class="text-caption text-grey">You're all caught up!</p>
         </v-col>
       </v-row>
+
+      <!-- Grouped Deliveries List -->
+      <template v-else>
+        <!-- Overdue Tasks -->
+        <div v-if="sortedDeliveries.overdue.length > 0" class="mb-8">
+          <div class="d-flex align-center mb-4">
+            <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
+            <h2 class="text-h6 font-weight-bold text-error">Overdue Deliveries</h2>
+            <v-chip size="small" color="error" class="ml-3" variant="flat">{{ sortedDeliveries.overdue.length }}</v-chip>
+          </div>
+          <v-row>
+            <v-col v-for="delivery in sortedDeliveries.overdue" :key="delivery.id" cols="12" md="6">
+              <delivery-card :delivery="delivery" type="overdue" @update-status="updateStatus" @complete="openCompleteDialog" @failed="openFailedDialog" @map="openMap"></delivery-card>
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- Today's Tasks -->
+        <div v-if="sortedDeliveries.today.length > 0" class="mb-8">
+           <div class="d-flex align-center mb-4">
+            <v-icon color="primary" class="mr-2">mdi-calendar-today</v-icon>
+            <h2 class="text-h6 font-weight-bold text-primary">Today's Schedule</h2>
+            <v-chip size="small" color="primary" class="ml-3" variant="flat">{{ sortedDeliveries.today.length }}</v-chip>
+          </div>
+          <v-row>
+             <v-col v-for="delivery in sortedDeliveries.today" :key="delivery.id" cols="12" md="6">
+              <delivery-card :delivery="delivery" type="today" @update-status="updateStatus" @complete="openCompleteDialog" @failed="openFailedDialog" @map="openMap"></delivery-card>
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- Upcoming Tasks -->
+        <div v-if="sortedDeliveries.upcoming.length > 0" class="mb-8">
+           <div class="d-flex align-center mb-4">
+            <v-icon color="grey-darken-1" class="mr-2">mdi-calendar-clock</v-icon>
+            <h2 class="text-h6 font-weight-bold text-grey-darken-2">Upcoming</h2>
+            <v-chip size="small" color="grey" class="ml-3" variant="flat">{{ sortedDeliveries.upcoming.length }}</v-chip>
+          </div>
+          <v-row>
+             <v-col v-for="delivery in sortedDeliveries.upcoming" :key="delivery.id" cols="12" md="6">
+              <delivery-card :delivery="delivery" type="upcoming" @update-status="updateStatus" @complete="openCompleteDialog" @failed="openFailedDialog" @map="openMap"></delivery-card>
+            </v-col>
+          </v-row>
+        </div>
+      </template>
     </v-container>
 
     <!-- Complete Delivery Dialog -->
-    <v-dialog v-model="completeDialog" max-width="400">
-      <v-card>
-        <v-card-title>Complete Delivery</v-card-title>
-        <v-card-text>
+    <v-dialog v-model="completeDialog" max-width="450">
+      <v-card class="rounded-lg">
+        <v-card-title class="bg-success text-white py-3">
+          <v-icon start icon="mdi-check-circle" class="mr-2"></v-icon>
+          Complete Delivery
+        </v-card-title>
+        <v-card-text class="pt-4">
           <v-textarea
             v-model="deliveryNotes"
             label="Delivery Notes (Optional)"
             variant="outlined"
             rows="3"
+            placeholder="Any comments about the delivery..."
+            density="comfortable"
           ></v-textarea>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="px-4 pb-4">
           <v-spacer></v-spacer>
           <v-btn variant="text" @click="completeDialog = false">Cancel</v-btn>
-          <v-btn color="success" :loading="updating" @click="confirmComplete">
+          <v-btn color="success" variant="elevated" :loading="updating" @click="confirmComplete">
             Confirm Delivery
           </v-btn>
         </v-card-actions>
@@ -189,43 +134,50 @@
     </v-dialog>
 
     <!-- Failed Delivery Dialog -->
-    <v-dialog v-model="failedDialog" max-width="400">
-      <v-card>
-        <v-card-title>Mark as Failed</v-card-title>
-        <v-card-text>
+    <v-dialog v-model="failedDialog" max-width="450">
+      <v-card class="rounded-lg">
+        <v-card-title class="bg-error text-white py-3">
+          <v-icon start icon="mdi-alert-circle" class="mr-2"></v-icon>
+          Mark as Failed
+        </v-card-title>
+        <v-card-text class="pt-4">
           <v-textarea
             v-model="failureReason"
             label="Reason for Failure *"
             variant="outlined"
             rows="3"
             required
+            placeholder="Why was the delivery failed?"
+            density="comfortable"
           ></v-textarea>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="px-4 pb-4">
           <v-spacer></v-spacer>
           <v-btn variant="text" @click="failedDialog = false">Cancel</v-btn>
           <v-btn
             color="error"
+            variant="elevated"
             :loading="updating"
             :disabled="!failureReason"
             @click="confirmFailed"
           >
-            Confirm
+            Confirm Failure
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Snackbar -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color">
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right">
       {{ snackbar.message }}
     </v-snackbar>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, defineComponent } from 'vue'
 import { useDeliveryStore } from '@/stores/deliveries'
+import DeliveryCard from './components/DeliveryCard.vue'
 
 const deliveryStore = useDeliveryStore()
 
@@ -242,131 +194,99 @@ const snackbar = ref({
   color: 'success'
 })
 
-// Summary counts from statistics API
+// Summary counts
 const scheduledCount = computed(() => deliveryStore.todayStatistics.scheduled)
 const outForDeliveryCount = computed(() => deliveryStore.todayStatistics.out_for_delivery)
 const completedCount = computed(() => deliveryStore.todayStatistics.delivered)
 const failedCount = computed(() => deliveryStore.todayStatistics.failed)
 
-const getStatusColor = (status) => {
-  const colors = {
-    scheduled: 'grey',
-    out_for_delivery: 'info',
-    delivered: 'success',
-    failed: 'error'
-  }
-  return colors[status] || 'grey'
-}
+// Grouping Logic
+const sortedDeliveries = computed(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const todayEnd = todayStart + 86400000;
+    
+    const overdue = [];
+    const today = [];
+    const upcoming = [];
 
-const getStatusText = (status) => {
-  return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-}
+    deliveryStore.todayDeliveries.forEach(d => {
+        // Skip completed/failed from main list if necessary, but API seems to send 'scheduled','out_for_delivery','in_transit'
+        if (['delivered', 'failed'].includes(d.status)) return;
+
+        const dDate = new Date(d.scheduled_date).getTime();
+        
+        if (dDate < todayStart) {
+            overdue.push(d);
+        } else if (dDate >= todayStart && dDate < todayEnd) {
+            today.push(d);
+        } else {
+            upcoming.push(d);
+        }
+    });
+
+    return { overdue, today, upcoming };
+})
 
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   })
 }
 
-const formatDeliveryTime = (date) => {
-  return new Date(date).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  })
-}
-
+// Keeping wrapper methods for main component
 const updateStatus = async (delivery, status) => {
   try {
     await deliveryStore.updateDeliveryStatus(delivery.id, { status })
-    // Refresh statistics after status update
     await deliveryStore.fetchTodayStatistics()
-    snackbar.value = {
-      show: true,
-      message: 'Delivery status updated',
-      color: 'success'
-    }
+    snackbar.value = { show: true, message: 'Status updated', color: 'success' }
   } catch (error) {
-    snackbar.value = {
-      show: true,
-      message: 'Failed to update status',
-      color: 'error'
-    }
+    snackbar.value = { show: true, message: 'Failed to update', color: 'error' }
   }
 }
 
 const openCompleteDialog = (delivery) => {
-  selectedDelivery.value = delivery
-  deliveryNotes.value = ''
-  completeDialog.value = true
+  selectedDelivery.value = delivery; deliveryNotes.value = ''; completeDialog.value = true;
 }
 
 const openFailedDialog = (delivery) => {
-  selectedDelivery.value = delivery
-  failureReason.value = ''
-  failedDialog.value = true
+  selectedDelivery.value = delivery; failureReason.value = ''; failedDialog.value = true;
 }
 
 const confirmComplete = async () => {
-  updating.value = true
-  try {
-    await deliveryStore.updateDeliveryStatus(selectedDelivery.value.id, {
-      status: 'delivered',
-      delivery_notes: deliveryNotes.value
-    })
-    // Refresh statistics after completion
-    await deliveryStore.fetchTodayStatistics()
-    completeDialog.value = false
-    snackbar.value = {
-      show: true,
-      message: 'Delivery marked as completed!',
-      color: 'success'
+    updating.value = true
+    try {
+        await deliveryStore.updateDeliveryStatus(selectedDelivery.value.id, {
+            status: 'delivered', delivery_notes: deliveryNotes.value
+        })
+        await deliveryStore.fetchTodayStatistics()
+        completeDialog.value = false
+        snackbar.value = { show: true, message: 'Marked as Delivered', color: 'success' }
+    } catch (e) {
+         snackbar.value = { show: true, message: 'Error updating status', color: 'error' }
+    } finally {
+        updating.value = false
     }
-  } catch (error) {
-    snackbar.value = {
-      show: true,
-      message: 'Failed to complete delivery',
-      color: 'error'
-    }
-  } finally {
-    updating.value = false
-  }
 }
 
 const confirmFailed = async () => {
-  updating.value = true
-  try {
-    await deliveryStore.updateDeliveryStatus(selectedDelivery.value.id, {
-      status: 'failed',
-      failure_reason: failureReason.value
-    })
-    // Refresh statistics after marking as failed
-    await deliveryStore.fetchTodayStatistics()
-    failedDialog.value = false
-    snackbar.value = {
-      show: true,
-      message: 'Delivery marked as failed',
-      color: 'warning'
+    updating.value = true
+    try {
+         await deliveryStore.updateDeliveryStatus(selectedDelivery.value.id, {
+            status: 'failed', failure_reason: failureReason.value
+        })
+        await deliveryStore.fetchTodayStatistics()
+        failedDialog.value = false
+        snackbar.value = { show: true, message: 'Marked as Failed', color: 'warning' }
+    } catch(e) {
+         snackbar.value = { show: true, message: 'Error updating status', color: 'error' }
+    } finally {
+        updating.value = false
     }
-  } catch (error) {
-    snackbar.value = {
-      show: true,
-      message: 'Failed to update status',
-      color: 'error'
-    }
-  } finally {
-    updating.value = false
-  }
 }
 
 const openMap = (address) => {
-  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-  window.open(url, '_blank')
+  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank')
 }
 
 onMounted(async () => {
@@ -376,4 +296,3 @@ onMounted(async () => {
   ])
 })
 </script>
-
