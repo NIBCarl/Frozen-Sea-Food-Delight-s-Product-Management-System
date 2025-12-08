@@ -38,7 +38,7 @@ class SupplierOrderController extends Controller
         }
 
         // Get orders that contain supplier's products
-        $query = Order::with(['customer', 'items.product', 'delivery'])
+        $query = Order::with(['customer', 'items.product', 'delivery.deliveryPersonnel'])
             ->whereHas('items', function ($q) use ($supplierProductIds) {
                 $q->whereIn('product_id', $supplierProductIds);
             });

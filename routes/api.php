@@ -35,6 +35,25 @@ Route::prefix('v1')->group(function () {
         }
     });
     
+    // Test route for SMS Gateway
+    Route::get('test-sms', function () {
+        try {
+            $smsGateway = app(\App\Services\SmsGateway::class);
+            $result = $smsGateway->send('09074004796', 'Test OTP: 123456');
+            
+            return response()->json([
+                'message' => 'SMS test completed',
+                'result' => $result,
+                'gateway_class' => get_class($smsGateway)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'SMS test error: ' . $e->getMessage(),
+                'error' => true
+            ], 500);
+        }
+    });
+    
     // Public API Routes (no authentication required)
     Route::prefix('public')->group(function () {
         // Public product browsing - only shows active and available products
@@ -63,11 +82,42 @@ Route::prefix('v1')->group(function () {
         Route::post('resend-otp', [App\Http\Controllers\Api\AuthController::class, 'resendOtp']);
         Route::post('forgot-password', [App\Http\Controllers\Api\AuthController::class, 'forgotPassword']);
         Route::post('reset-password', [App\Http\Controllers\Api\AuthController::class, 'resetPassword']);
+        
+        // Google OAuth routes (redirect handled via web routes)
+        Route::get('google/redirect-url', function () {
+            return response()->json([
+                'url' => url('/auth/google/redirect')
+            ]);
+        });
+    });
+    
+    // Protected OAuth Onboarding Routes
+    Route::middleware('auth:sanctum')->prefix('onboarding')->group(function () {
+        Route::get('status', [App\Http\Controllers\Api\SocialAuthController::class, 'checkOnboardingStatus']);
+        Route::post('complete-profile', [App\Http\Controllers\Api\SocialAuthController::class, 'completeProfile']);
+        Route::post('verify-otp', [App\Http\Controllers\Api\SocialAuthController::class, 'verifyOnboardingOtp']);
+        Route::post('resend-otp', [App\Http\Controllers\Api\SocialAuthController::class, 'resendOnboardingOtp']);
     });
 
     // Protected Routes
     Route::middleware('auth:sanctum')->group(function () {
         
+        // Debug route to inspect user data
+        Route::get('debug/me', function (Request $request) {
+            $user = $request->user();
+            return response()->json([
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'profile_completed' => $user->profile_completed,
+                'google_id' => $user->google_id, // This might be hidden in serialization usually
+                'is_google_user' => $user->is_google_user, // Accessor
+                'username' => $user->username,
+                'contact_number' => $user->contact_number,
+                'raw_attributes' => $user->getAttributes(),
+            ]);
+        });
+
         // Auth Management
         Route::prefix('auth')->group(function () {
             Route::post('logout', [App\Http\Controllers\Api\AuthController::class, 'logout']);

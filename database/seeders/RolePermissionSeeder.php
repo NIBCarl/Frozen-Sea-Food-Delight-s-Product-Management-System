@@ -121,6 +121,7 @@ class RolePermissionSeeder extends Seeder
             'username' => 'sysadmin',
             'password' => bcrypt('admin123'),
             'status' => 'active',
+            'profile_completed' => true,
         ]);
 
         $adminUser->assignRole('admin');
@@ -133,6 +134,7 @@ class RolePermissionSeeder extends Seeder
             'username' => 'mainsupplier',
             'password' => bcrypt('supplier123'),
             'status' => 'active',
+            'profile_completed' => true,
         ]);
 
         $supplierUser->assignRole('supplier');

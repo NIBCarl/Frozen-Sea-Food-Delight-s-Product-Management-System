@@ -198,6 +198,40 @@ export const useAuthStore = defineStore('auth', {
           this.clearAuth();
         }
       }
+    },
+
+    async getGoogleRedirectUrl() {
+      try {
+        const response = await axios.get('/api/v1/auth/google/redirect-url');
+        return response.data.url;
+      } catch (error) {
+        console.error('Failed to get Google redirect URL:', error);
+        throw error;
+      }
+    },
+
+    async redirectToGoogle() {
+      try {
+        const url = await this.getGoogleRedirectUrl();
+        window.location.href = url;
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    async checkOnboardingStatus() {
+      try {
+        const response = await axios.get('/api/v1/onboarding/status');
+        return response.data;
+      } catch (error) {
+        console.error('Failed to check onboarding status:', error);
+        throw error;
+      }
+    },
+
+    needsOnboarding() {
+      if (!this.user) return false;
+      return !this.user.profile_completed || !this.user.username || !this.user.contact_number;
     }
   }
 });

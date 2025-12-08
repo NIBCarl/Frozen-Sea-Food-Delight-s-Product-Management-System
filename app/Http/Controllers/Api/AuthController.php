@@ -13,9 +13,17 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use App\Enums\UserStatus;
+use App\Services\SmsGateway;
 
 class AuthController extends Controller
 {
+    protected $smsGateway;
+
+    public function __construct(SmsGateway $smsGateway)
+    {
+        $this->smsGateway = $smsGateway;
+    }
+
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -65,8 +73,11 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'username' => $user->username,
+                'contact_number' => $user->contact_number,
                 'roles' => $user->roles->pluck('name'),
                 'status' => $user->status,
+                'profile_completed' => $user->profile_completed,
+                'is_google_user' => $user->is_google_user,
             ],
             'token' => $token
         ]);
@@ -106,7 +117,7 @@ class AuthController extends Controller
         $user->assignRole('customer');
         
         // Send OTP
-        $this->sendOtp($user->contact_number, $otp);
+        $this->smsGateway->send($user->contact_number, "Your verification code is: {$otp}");
 
         return response()->json([
             'message' => 'Registration successful. Please check your phone for the OTP.',
@@ -206,16 +217,9 @@ class AuthController extends Controller
             'otp_expires_at' => now()->addMinutes(10),
         ]);
 
-        $this->sendOtp($user->contact_number, $otp);
+        $this->smsGateway->send($user->contact_number, "Your new verification code is: {$otp}");
 
         return response()->json(['message' => 'OTP resent successfully']);
-    }
-
-    private function sendOtp($phoneNumber, $otp)
-    {
-        // TODO: Integrate with actual SMS gateway (e.g., Twilio, Vonage)
-        // For now, we log the OTP for testing purposes
-        Log::info("OTP for {$phoneNumber}: {$otp}");
     }
 
     public function logout(Request $request)

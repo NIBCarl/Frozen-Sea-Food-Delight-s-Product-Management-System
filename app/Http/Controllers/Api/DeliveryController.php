@@ -160,15 +160,14 @@ class DeliveryController extends Controller
      */
     public function todayDeliveries(Request $request)
     {
-        // Temporarily allow all authenticated users for debugging
-        // TODO: Restore role check after debugging
-        // if (!$request->user()->isDeliveryPersonnel()) {
-        //     return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        // }
+        if (!$request->user()->isDeliveryPersonnel()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
 
         // Show today's and upcoming active deliveries (within next 7 days)
         // This is more practical for delivery personnel to prepare ahead
         $deliveries = Delivery::with(['order.customer', 'order.items.product'])
+            ->where('delivery_personnel_id', $request->user()->id)
             ->where('scheduled_date', '>=', today())
             ->where('scheduled_date', '<=', today()->addDays(7))
             ->whereIn('status', ['scheduled', 'out_for_delivery', 'in_transit'])
@@ -207,14 +206,14 @@ class DeliveryController extends Controller
      */
     public function todayStatistics(Request $request)
     {
-        // Temporarily allow all authenticated users for debugging
-        // TODO: Restore role check after debugging
-        // if (!$request->user()->isDeliveryPersonnel()) {
-        //     return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        // }
+        if (!$request->user()->isDeliveryPersonnel()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
 
-        // Get TODAY's deliveries by status
-        $todayDeliveries = Delivery::whereDate('scheduled_date', today())->get();
+        // Get TODAY's deliveries by status for this user
+        $todayDeliveries = Delivery::where('delivery_personnel_id', $request->user()->id)
+            ->whereDate('scheduled_date', today())
+            ->get();
 
         $statistics = [
             'scheduled' => $todayDeliveries->where('status', 'scheduled')->count(),

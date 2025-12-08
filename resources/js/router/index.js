@@ -26,6 +26,18 @@ const routes = [
     meta: { guest: true },
   },
   {
+    path: '/oauth/callback',
+    name: 'OAuthCallback',
+    component: () => import('../views/auth/GoogleCallback.vue'),
+    meta: { guest: true },
+  },
+  {
+    path: '/onboarding',
+    name: 'Onboarding',
+    component: () => import('../views/auth/Onboarding.vue'),
+    meta: { requiresAuth: true, allowIncompleteProfile: true },
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     // Do not hard-redirect here to avoid loops; guard below will route by role
@@ -210,6 +222,18 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login');
     return;
+  }
+
+  // Check if user needs to complete onboarding (for Google OAuth users)
+  if (authStore.isAuthenticated && authStore.user && !to.meta.allowIncompleteProfile) {
+    const isGoogleUser = authStore.user.is_google_user;
+    const needsOnboarding = !authStore.user.profile_completed || 
+                           (isGoogleUser && (!authStore.user.username || !authStore.user.contact_number));
+                           
+    if (needsOnboarding && to.path !== '/onboarding') {
+      next('/onboarding');
+      return;
+    }
   }
 
   // Check admin access
