@@ -12,9 +12,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Services\SmsGateway;
 
 class OrderController extends Controller
 {
+    protected $smsGateway;
+
+    public function __construct(SmsGateway $smsGateway)
+    {
+        $this->smsGateway = $smsGateway;
+    }
+
+
     /**
      * Display a listing of orders
      * Admin: all orders
@@ -290,6 +299,28 @@ class OrderController extends Controller
 
             $order->load(['customer', 'items.product', 'delivery']);
 
+            // Send SMS notification
+            try {
+                $message = '';
+                switch ($request->status) {
+                    case 'processing':
+                        $message = "Your Order #{$order->order_number} is now being processed.";
+                        break;
+                    case 'in_transit':
+                        $message = "Your Order #{$order->order_number} is on its way!";
+                        break;
+                    case 'delivered':
+                        $message = "Your Order #{$order->order_number} has been delivered. Thank you!";
+                        break;
+                }
+
+                if ($message && $order->contact_number) {
+                    $this->smsGateway->send($order->contact_number, $message);
+                }
+            } catch (\Exception $e) {
+                Log::error("Failed to send SMS for order {$order->order_number}: " . $e->getMessage());
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Order status updated successfully',
@@ -354,6 +385,15 @@ class OrderController extends Controller
 
             DB::commit();
 
+            // Send SMS notification
+            try {
+                if ($order->contact_number) {
+                    $this->smsGateway->send($order->contact_number, "Your Order #{$order->order_number} has been cancelled.");
+                }
+            } catch (\Exception $e) {
+                Log::error("Failed to send cancellation SMS for order {$order->order_number}: " . $e->getMessage());
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Order cancelled successfully'
@@ -410,6 +450,19 @@ class OrderController extends Controller
                     'notes' => $order->notes . "\n\nPayment verification failed: " . ($request->notes ?? 'No reason provided'),
                 ]);
                 $message = 'Payment verification rejected';
+            }
+            
+            // Send SMS
+            try {
+                if ($order->contact_number) {
+                    $smsMsg = $request->action === 'approve' 
+                        ? "Payment for Order #{$order->order_number} verified. We are processing it now."
+                        : "Payment for Order #{$order->order_number} was rejected. Reason: " . ($request->notes ?? 'Contact support');
+                    
+                    $this->smsGateway->send($order->contact_number, $smsMsg);
+                }
+            } catch (\Exception $e) {
+                Log::error("Failed to send payment SMS: " . $e->getMessage());
             }
 
             return response()->json([

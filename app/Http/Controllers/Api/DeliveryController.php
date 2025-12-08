@@ -7,9 +7,16 @@ use App\Models\Delivery;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Services\SmsGateway;
 
 class DeliveryController extends Controller
 {
+    protected $smsGateway;
+
+    public function __construct(SmsGateway $smsGateway)
+    {
+        $this->smsGateway = $smsGateway;
+    }
     /**
      * Display a listing of deliveries
      */
@@ -140,6 +147,27 @@ class DeliveryController extends Controller
 
             $delivery->update($updateData);
             $delivery->load(['order', 'deliveryPersonnel']);
+
+            // Send SMS notification
+            try {
+                $message = '';
+                if ($request->status === 'out_for_delivery') {
+                    $message = "Your order from Seafood Delight is out for delivery today!";
+                } elseif ($request->status === 'delivered') {
+                    // This message might be duplicate if OrderController also sends it, but DeliveryController updates model directly so OrderController logic won't run.
+                    // So we MUST send it here.
+                    $message = "Your Order #{$delivery->order->order_number} has been delivered. Thank you!";
+                } elseif ($request->status === 'failed') {
+                    $message = "Delivery attempt for Order #{$delivery->order->order_number} failed. Reason: " . ($request->failure_reason ?? 'Customer unavailable');
+                }
+
+                if ($message && $delivery->order->contact_number) {
+                    $this->smsGateway->send($delivery->order->contact_number, $message);
+                }
+            } catch (\Exception $e) {
+                // Log but don't fail the request
+                \Log::error("Failed to send delivery SMS: " . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
