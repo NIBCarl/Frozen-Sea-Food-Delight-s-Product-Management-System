@@ -23,7 +23,8 @@
                   prepend-inner-icon="mdi-phone"
                   variant="outlined"
                   :rules="[rules.required, rules.phone]"
-                  placeholder="09XX XXX XXXX"
+                  placeholder="+639123456789"
+                  @input="handlePhoneInput"
                 ></v-text-field>
 
                 <v-textarea
@@ -316,7 +317,7 @@ const shippingZones = ref([])
 const shippingCost = ref(0)
 
 const orderData = ref({
-  contact_number: authStore.user?.contact_number || '',
+  contact_number: authStore.user?.contact_number || '+63',
   delivery_address: authStore.user?.delivery_address || '',
   shipping_zone_id: null,
   preferred_delivery_date: '',
@@ -339,7 +340,7 @@ const breadcrumbs = [
 
 const rules = {
   required: v => !!v || 'This field is required',
-  phone: v => /^09\d{9}$/.test(v) || 'Invalid phone number format'
+  phone: v => /^\+639\d{9}$/.test(v) || 'Invalid phone number format (e.g., +639...)'
 }
 
 const minDate = computed(() => {
@@ -375,6 +376,31 @@ const calculateShipping = () => {
     shippingCost.value = parseFloat(selectedZone.base_shipping_rate) || 0
   }
 }
+
+const handlePhoneInput = (event) => {
+  let value = event.target.value;
+  
+  // Create a regex that only allows + and numbers
+  value = value.replace(/[^\d+]/g, '');
+  
+  // Ensure it starts with +63
+  if (!value.startsWith('+63')) {
+    if (value.startsWith('63')) {
+      value = '+' + value;
+    } else if (value.startsWith('+')) {
+       if (value.length === 1) value = '+63';
+    } else {
+       value = '+63' + value.replace(/^\+/, '');
+    }
+  }
+  
+  // Limit length (+63 + 10 digits = 13 chars)
+  if (value.length > 13) {
+      value = value.slice(0, 13);
+  }
+
+  orderData.value.contact_number = value;
+};
 
 const placeOrder = async () => {
   const { valid } = await form.value.validate()
@@ -468,6 +494,15 @@ onMounted(async () => {
     cartStore.fetchCart(),
     fetchShippingZones()
   ])
+
+  // Normalize existing phone number if necessary
+  if (orderData.value.contact_number && !orderData.value.contact_number.startsWith('+63')) {
+     // Assume it starts with 09 or just 9
+     let raw = orderData.value.contact_number.replace(/^0|^63/g, '');
+     if (raw.startsWith('9')) {
+         orderData.value.contact_number = '+63' + raw;
+     }
+  }
   
   if (!cartStore.hasItems) {
     router.push({ name: 'customer.cart' })

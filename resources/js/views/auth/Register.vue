@@ -83,8 +83,9 @@
                       type="tel"
                       class="form-input"
                       :class="{ 'input-error': errors.contact_number }"
-                      placeholder="09123456789"
+                      placeholder="+639123456789"
                       required
+                      @input="handlePhoneInput"
                     />
                   </div>
                   <span v-if="errors.contact_number" class="error-text">{{ errors.contact_number }}</span>
@@ -277,7 +278,7 @@ const formRef = ref(null);
 const form = reactive({
   name: '',
   username: '',
-  contact_number: '',
+  contact_number: '+63',
   email: '',
   password: '',
   password_confirmation: '',
@@ -336,8 +337,8 @@ const validateForm = () => {
   if (!form.contact_number) {
     errors.contact_number = 'Phone number is required';
     isValid = false;
-  } else if (!/^(09|\+639)\d{9}$/.test(form.contact_number)) {
-    errors.contact_number = 'Please enter a valid PH mobile number';
+  } else if (!/^\+639\d{9}$/.test(form.contact_number)) {
+    errors.contact_number = 'Please enter a valid PH mobile number (+639...)';
     isValid = false;
   }
   
@@ -431,6 +432,34 @@ const handleGoogleSignUp = async () => {
     showSnackbar('Failed to connect to Google. Please try again.', 'error');
     googleLoading.value = false;
   }
+};
+    googleLoading.value = false;
+  }
+};
+
+const handlePhoneInput = (event) => {
+  let value = event.target.value;
+  
+  // Create a regex that only allows + and numbers
+  value = value.replace(/[^\d+]/g, '');
+  
+  // Ensure it starts with +63
+  if (!value.startsWith('+63')) {
+    if (value.startsWith('63')) {
+      value = '+' + value;
+    } else if (value.startsWith('+')) {
+       if (value.length === 1) value = '+63';
+    } else {
+       value = '+63' + value.replace(/^\+/, '');
+    }
+  }
+  
+  // Limit length (+63 + 10 digits = 13 chars)
+  if (value.length > 13) {
+      value = value.slice(0, 13);
+  }
+
+  form.contact_number = value;
 };
 </script>
 
