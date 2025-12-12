@@ -1,4 +1,0 @@
-User found: Pedro Delivery (ID: 7)
-Created Order: ORD-693750BA59328 (ID: 16)
-Created Delivery: 14 | Status: scheduled | Scheduled: 2026-01-22 22:27:06
-SUCCESS: Active delivery generated.
